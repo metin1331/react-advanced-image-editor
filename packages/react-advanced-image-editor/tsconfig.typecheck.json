@@ -1,0 +1,15 @@
+// Typecheck against the core package's *source*, so the two packages can be
+// verified together without building core's .d.ts first. Build config
+// (tsconfig.json) is left alone so tsup keeps emitting a real import.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "declaration": false,
+    "rootDir": "..",
+    "baseUrl": ".",
+    "paths": {
+      "react-advanced-image-editor-core": ["../react-advanced-image-editor-core/src"]
+    }
+  }
+}

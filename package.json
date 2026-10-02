@@ -1,0 +1,15 @@
+{
+  "name": "react-advanced-image-editor-workspace",
+  "private": true,
+  "description": "Workspace for react-advanced-image-editor and its demo site",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=demo",
+    "build": "npm run build --workspace=react-advanced-image-editor-core && npm run build --workspace=react-advanced-image-editor",
+    "build:demo": "npm run build && npm run build --workspace=demo",
+    "typecheck": "npm run typecheck --workspace=react-advanced-image-editor"
+  }
+}
