@@ -241,6 +241,25 @@ export default function App() {
         src={file}
         preset={preset}
         theme={theme}
+        // brandColor={
+        //   theme === "dark"
+        //     ? "oklch(62% 0.42 16.439)"
+        //     : "oklch(55.5% 0.46 16.439)"
+        // }
+        brandColorAffectsBackground={true}
+        brandColor={
+          theme === "dark" ? "oklch(72% 0.19 265)" : "oklch(55% 0.24 265)"
+        }
+        colors={{
+          accent: 'oklch(55% 0.24 265)',
+          accentHover: 'oklch(47% 0.22 265)',
+          accentSoft: 'oklch(90% 0.08 265)',
+        }}
+        darkColors={{
+          accent: 'oklch(55% 0.24 265)',
+          accentHover: 'oklch(50% 0.24 265)',
+          accentSoft: 'oklch(32% 0.10 265)',
+        }}
         locale={locale}
         title="Edit photo"
         onPresetChange={setPreset}

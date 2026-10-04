@@ -222,6 +222,20 @@ export interface ImageEditorProps {
    */
   darkColors?: Partial<ImageEditorThemeColors>;
   /**
+   * One site color, mixed in oklch into the default chrome (`--ie-brand`).
+   * Omit it and the editor keeps its built-in colors.
+   * The same value is used in light and dark; dark only swaps the base tokens.
+   * `colors` / `darkColors` still replace a token outright.
+   */
+  brandColor?: string;
+  /**
+   * When `true` and `brandColor` is set, that color tints the backgrounds of
+   * `[data-ie-part="topbar"]`, `[data-ie-part="chrome-slot"]`, and
+   * `[data-ie-part="viewport-area"]` by about 8%.
+   * Default `false`: those stay `#ffffff` in light and `#050404` in dark.
+   */
+  brandColorAffectsBackground?: boolean;
+  /**
    * After Done, show a floating preview of the exported image (bottom-left)
    * with download + close. Default `true`. Stays up after the editor closes.
    * Ignored when `exportView` is `"result"`.

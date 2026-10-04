@@ -2,7 +2,7 @@
 
 > **Maintained living doc.** Update this file whenever the image editor packages or Chatimio integration change.
 
-**Last updated:** 2026-10-02 (export result host: `exportResultContainer`)
+**Last updated:** 2026-10-05 (site color: `brandColor`)
 
 This file lives at `packages/react-advanced-image-editor/image-editor-library.md`.  
 
@@ -48,6 +48,17 @@ import 'react-advanced-image-editor/styles.css';
 
 `"inline"` fills a host element. `container` is a CSS selector, an element, or a ref. The host needs a height; the editor fills that box and does not grow it. Omit `container` to render the editor where `<ImageEditor />` sits in the tree.
 
+Padding and corner radius are optional and default to none. Set them on the host (they inherit into the editor):
+
+```css
+.stage {
+  --ie-inline-padding: 16px;
+  --ie-inline-radius: 18px;
+}
+```
+
+`--ie-inline-padding` insets the editor from the host edges. `--ie-inline-radius` rounds the editor. Fullscreen ignores both and covers the page edge to edge.
+
 ```tsx
 <ImageEditor
   open={open}
@@ -92,6 +103,27 @@ Yes. Light overrides go on `colors`, dark overrides on `darkColors`. Both are `P
 ```
 
 The same keys exist for background, text, crop chrome, and ruler ticks (`bg`, `text`, `rulerPositive`, …). Mode-ring flats are separate: `modeRingColors` and `darkModeRingColors` (see **Mode ring colors**).
+
+To stay close to the defaults, pass one site color as `brandColor`. It becomes `--ie-brand` and is mixed in `oklch` with the built-in bases. Omit it and each mix falls back to its own base, so the editor looks unchanged. The same color is used in light and dark; the dark theme only replaces the `--ie-*-base` values. `colors` and `darkColors` are inline and still replace a token outright.
+
+| Token | Brand share |
+|-------|-------------|
+| `--ie-accent`, `--ie-accent-hover` | 32% |
+| `--ie-accent-soft` | 18% |
+| `--ie-bg`, `--ie-bg-muted`, `--ie-bg-sidebar`, `--ie-border`, `--ie-overlay`, `--ie-chrome-hover`, `--ie-chrome-active` | 8% |
+| `topbar`, `chrome-slot`, `viewport-area` backgrounds | 8%, only when `brandColorAffectsBackground` |
+
+Text, crop lines, the grid, and `--ie-accent-text` stay unmixed. `--ie-ruler-positive` and `--ie-gold` follow `--ie-accent`.
+
+`topbar`, `chrome-slot`, and `viewport-area` keep `#ffffff` in light and `#050404` in dark even when `brandColor` is set. `brandColorAffectsBackground` defaults to `false`. Set it to `true` to mix the brand into those three backgrounds.
+
+```tsx
+<ImageEditor
+  brandColor="oklch(55.5% 0.46 16.439)"
+/>
+```
+
+The modal is portaled to `document.body`, so a page custom property does not inherit. Pass the color on the prop. The demo does that with its light and dark `--accent`.
 
 The demo site uses these same accent tokens for its buttons and marks.
 
@@ -1217,6 +1249,16 @@ Core re-exports: `MarkupText`, `MarkupTextAlign`, `DEFAULT_MARKUP_FONT_ID`,
 ---
 
 ## Changelog (doc sync)
+
+### 2026-10-05 (site color)
+
+- Optional `brandColor` on `ImageEditor`. One color is mixed in `oklch` into the default chrome. No color leaves the defaults as they are.
+- Accent and accent hover take about 32% of that color, accent soft about 18%, surfaces about 8%. `topbar`, `chrome-slot`, and `viewport-area` stay `#ffffff` / `#050404` unless `brandColorAffectsBackground` is `true`.
+- Dark theme only swaps the `--ie-*-base` values. `colors` / `darkColors` still replace a token outright.
+
+### 2026-10-05 (inline padding and radius)
+
+- Inline editor accepts `--ie-inline-padding` and `--ie-inline-radius` on the host. Defaults stay flush and square. Fullscreen ignores both.
 
 ### 2026-10-02 (export result host)
 

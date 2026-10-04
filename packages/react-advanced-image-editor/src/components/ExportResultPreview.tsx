@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+
 type Props = {
   /** Object URL or data URL of the exported image. */
   url: string;
@@ -92,6 +94,7 @@ export function ExportResultPreview({
 
 type PageResultProps = Props & {
   theme?: 'light' | 'dark';
+  brandColor?: string;
 };
 
 /** In-page export block. Shown instead of `.ie-export-preview` when requested. */
@@ -101,13 +104,19 @@ export function ExportPageResult({
   downloadLabel = 'Download',
   closeLabel = 'Close',
   theme = 'light',
+  brandColor,
   onClose,
 }: PageResultProps) {
+  const brand = brandColor?.trim();
+  const brandStyle: CSSProperties | undefined = brand
+    ? { ['--ie-brand' as string]: brand }
+    : undefined;
   return (
     <section
       data-ie-part='export-result'
       data-ie-theme={theme}
       className='ie-export-result'
+      style={brandStyle}
     >
       <img src={url} alt='' className='ie-export-result-img' draggable={false} />
       <div className='ie-export-result-actions'>

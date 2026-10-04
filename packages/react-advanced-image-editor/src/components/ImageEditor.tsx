@@ -856,6 +856,8 @@ export function ImageEditor({
   locale = "en",
   colors,
   darkColors,
+  brandColor,
+  brandColorAffectsBackground = false,
   showExportPreview = true,
   exportView = "preview",
   exportResultContainer,
@@ -875,7 +877,9 @@ export function ImageEditor({
     const tokenStyle = themeColorsToStyle(
       theme === "dark" ? darkColors : colors,
     );
+    const brand = brandColor?.trim();
     return {
+      ...(brand ? { ["--ie-brand" as string]: brand } : {}),
       ...tokenStyle,
       ["--ie-ruler-tick-width" as string]: `${tickWidth}px`,
       ["--ie-ruler-tick-major-width" as string]: `${resolvedMajorTickWidth}px`,
@@ -910,7 +914,7 @@ export function ImageEditor({
         MODE_STRIP_SCROLL_FADE_EASE,
       ["--ie-mode-strip-scroll-wash" as string]: `${MODE_STRIP_SCROLL_WASH_PCT}%`,
     } as CSSProperties;
-  }, [theme, colors, darkColors, tickWidth, resolvedMajorTickWidth]);
+  }, [theme, colors, darkColors, brandColor, tickWidth, resolvedMajorTickWidth]);
   const config = useMemo(
     () =>
       resolveEditorConfig({
@@ -1912,12 +1916,34 @@ export function ImageEditor({
     showResult,
   );
 
+  const prevThemeRef = useRef(theme);
+  const [themeInstant, setThemeInstant] = useState(false);
+
+  useLayoutEffect(() => {
+    if (prevThemeRef.current === theme) return;
+    prevThemeRef.current = theme;
+    setThemeInstant(true);
+  }, [theme]);
+
+  useEffect(() => {
+    if (!themeInstant) return;
+    let inner = 0;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => setThemeInstant(false));
+    });
+    return () => {
+      cancelAnimationFrame(outer);
+      cancelAnimationFrame(inner);
+    };
+  }, [themeInstant]);
+
   const resultNode =
     showResult && exportResult ? (
       <ExportPageResult
         url={exportResult.url}
         mimeType={exportResult.mimeType}
         theme={theme}
+        brandColor={brandColor}
         downloadLabel={labels.download ?? "Download"}
         closeLabel={labels.close ?? "Close"}
         onClose={dismissExportResult}
@@ -1935,6 +1961,10 @@ export function ImageEditor({
           data-ie-fullscreen={fullscreen ? "true" : undefined}
           data-ie-presentation={inline ? "inline" : "modal"}
           data-ie-theme={theme}
+          data-ie-brand-bg={
+            brandColor?.trim() && brandColorAffectsBackground ? "true" : undefined
+          }
+          data-ie-theme-instant={themeInstant ? "true" : undefined}
           data-ie-skin="ios"
           data-ie-layout={config.layout}
           data-ie-preset={config.preset}
@@ -2155,6 +2185,7 @@ export function ImageEditor({
                   {onPresetChange ? (
                     <EditorPresetPicker
                       theme={theme}
+                      brandColor={brandColor}
                       value={resolvedPreset}
                       onChange={onPresetChange}
                       config={resolvedPresetPicker}
@@ -2313,6 +2344,7 @@ export function ImageEditor({
                                   {showPresetPicker && onPresetChange ? (
                                     <EditorPresetPicker
                                       theme={theme}
+                                      brandColor={brandColor}
                                       value={resolvedPreset}
                                       onChange={onPresetChange}
                                       config={resolvedPresetPicker}

@@ -56,11 +56,6 @@ select {
   color-scheme: light;
 }
 
-[data-ie-root][data-ie-presentation="inline"] [data-ie-part="backdrop"] {
-  border-radius: 25px;
-  padding: 10px 0;
-}
-
 .page[data-theme="dark"] {
   --bg: #1c1519;
   --ink: #f8eef2;
@@ -345,6 +340,8 @@ body:has(.page[data-theme="dark"]) {
 }
 
 .stage {
+  --ie-inline-padding: 16px 0;
+  --ie-inline-radius: 12px;
   position: relative;
   flex: 1;
   width: min(72rem, calc(100% - 2rem));

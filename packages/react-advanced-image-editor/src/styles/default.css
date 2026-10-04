@@ -7,24 +7,82 @@
 }
 
 [data-ie-root],
-.ie-preset-picker-menu {
+.ie-preset-picker-menu,
+.ie-export-result {
   /*
    * Brand accent — progress arcs, Done, gold tick, positive ruler.
    * Soft is the faint track under every progress arc (same hue, lifted L).
-   * Override via `colors` / `darkColors` props or CSS on `[data-ie-root]`.
+   * `brandColor` sets `--ie-brand`. Tokens mix that one color into these
+   * defaults. With no brand, the fallback is the base, so the look stays put.
+   * Full token replacement is still `colors` / `darkColors`.
    */
-  --ie-accent: oklch(55.5% 0.46 16.439);
-  --ie-accent-hover: oklch(48% 0.4 16.439);
-  --ie-accent-soft: oklch(88% 0.08 16.439);
+  --ie-accent-base: oklch(55.5% 0.46 16.439);
+  --ie-accent-hover-base: oklch(48% 0.4 16.439);
+  --ie-accent-soft-base: oklch(88% 0.08 16.439);
+  --ie-bg-base: #ffffff;
+  --ie-bg-muted-base: #ffffff;
+  --ie-bg-sidebar-base: #f7f7f8;
+  --ie-border-base: rgba(0, 0, 0, 0.06);
+  --ie-overlay-base: rgba(255, 255, 255, 0.75);
+  --ie-chrome-hover-base: rgba(0, 0, 0, 0.04);
+  --ie-chrome-active-base: rgba(0, 0, 0, 0.04);
+  /* topbar, chrome-slot, viewport-area. Mixed only with brandColorAffectsBackground. */
+  --ie-sheet-bg-base: #ffffff;
+  --ie-sheet-bg: var(--ie-sheet-bg-base);
+  --ie-accent: color-mix(
+    in oklch,
+    var(--ie-accent-base) 68%,
+    var(--ie-brand, var(--ie-accent-base)) 32%
+  );
+  --ie-accent-hover: color-mix(
+    in oklch,
+    var(--ie-accent-hover-base) 68%,
+    var(--ie-brand, var(--ie-accent-hover-base)) 32%
+  );
+  --ie-accent-soft: color-mix(
+    in oklch,
+    var(--ie-accent-soft-base) 82%,
+    var(--ie-brand, var(--ie-accent-soft-base)) 18%
+  );
+  --ie-bg: color-mix(
+    in oklch,
+    var(--ie-bg-base) 92%,
+    var(--ie-brand, var(--ie-bg-base)) 8%
+  );
+  --ie-bg-muted: color-mix(
+    in oklch,
+    var(--ie-bg-muted-base) 92%,
+    var(--ie-brand, var(--ie-bg-muted-base)) 8%
+  );
+  --ie-bg-sidebar: color-mix(
+    in oklch,
+    var(--ie-bg-sidebar-base) 92%,
+    var(--ie-brand, var(--ie-bg-sidebar-base)) 8%
+  );
+  --ie-border: color-mix(
+    in oklch,
+    var(--ie-border-base) 92%,
+    var(--ie-brand, var(--ie-border-base)) 8%
+  );
+  --ie-overlay: color-mix(
+    in oklch,
+    var(--ie-overlay-base) 92%,
+    var(--ie-brand, var(--ie-overlay-base)) 8%
+  );
+  --ie-chrome-hover: color-mix(
+    in oklch,
+    var(--ie-chrome-hover-base) 92%,
+    var(--ie-brand, var(--ie-chrome-hover-base)) 8%
+  );
+  --ie-chrome-active: color-mix(
+    in oklch,
+    var(--ie-chrome-active-base) 92%,
+    var(--ie-brand, var(--ie-chrome-active-base)) 8%
+  );
   --ie-accent-text: #ffffff;
-  --ie-bg: #ffffff;
-  --ie-bg-muted: #ffffff;
-  --ie-bg-sidebar: #f7f7f8;
-  --ie-border: rgba(0, 0, 0, 0.06);
   --ie-text: #1c1c1e;
   --ie-text-muted: #8e8e93;
   --ie-radius: 0;
-  --ie-overlay: rgba(255, 255, 255, 0.75);
   --ie-crop-border: #1c1c1e;
   --ie-crop-handle: #1c1c1e;
   /* --ie-grid: rgba(0, 0, 0, 0.5); */
@@ -37,8 +95,6 @@
   --ie-blur: 20px;
   /* Alias kept for older call sites / docs that still say “gold”. */
   --ie-gold: var(--ie-accent);
-  --ie-chrome-hover: rgba(0, 0, 0, 0.04);
-  --ie-chrome-active: rgba(0, 0, 0, 0.04);
   /* Ruler */
   --ie-ruler-negative: #000000;
   --ie-ruler-positive: var(--ie-accent);
@@ -106,25 +162,26 @@
 }
 
 [data-ie-root][data-ie-theme="dark"],
-.ie-preset-picker-menu[data-ie-theme="dark"] {
-  --ie-accent: oklch(62% 0.42 16.439);
-  --ie-accent-hover: oklch(55.5% 0.46 16.439);
-  --ie-accent-soft: oklch(38% 0.12 16.439);
-  --ie-bg: #09090b;
-  --ie-bg-muted: #09090b;
-  /* --ie-bg-sidebar: #18181b; */
-  --ie-bg-sidebar: rgba(255, 255, 255, 0.1);
-  --ie-border: rgba(255, 255, 255, 0.1);
+.ie-preset-picker-menu[data-ie-theme="dark"],
+.ie-export-result[data-ie-theme="dark"] {
+  --ie-accent-base: oklch(62% 0.42 16.439);
+  --ie-accent-hover-base: oklch(55.5% 0.46 16.439);
+  --ie-accent-soft-base: oklch(38% 0.12 16.439);
+  --ie-bg-base: #09090b;
+  --ie-bg-muted-base: #09090b;
+  /* --ie-bg-sidebar-base: #18181b; */
+  --ie-bg-sidebar-base: rgba(255, 255, 255, 0.1);
+  --ie-border-base: rgba(255, 255, 255, 0.1);
+  --ie-overlay-base: rgba(0, 0, 0, 0.45);
+  --ie-chrome-hover-base: rgba(255, 255, 255, 0.1);
+  --ie-chrome-active-base: rgba(255, 255, 255, 0.1);
+  --ie-sheet-bg-base: #050404;
   --ie-text: #f5f5f7;
   --ie-text-muted: #8e8e93;
-  --ie-overlay: rgba(0, 0, 0, 0.45);
   --ie-crop-border: #f5f5f7;
   --ie-crop-handle: #f5f5f7;
   --ie-grid: rgba(255, 255, 255, 0.28);
   --ie-grid-inner: rgba(255, 255, 255, 0.12);
-  --ie-gold: var(--ie-accent);
-  --ie-chrome-hover: rgba(255, 255, 255, 0.1);
-  --ie-chrome-active: rgba(255, 255, 255, 0.1);
   --ie-ruler-negative: #f5f5f7;
   --ie-ruler-positive: var(--ie-accent);
   --ie-ruler-tick: rgba(255, 255, 255, 0.25);
@@ -155,6 +212,14 @@
   --ie-text-mode-label-pill: #2e2e2e;
   --ie-preset-picker-menu-bg: rgba(255, 255, 255, 0.65);
   --ie-preset-picker-menu-text: #1c1c1e;
+}
+
+[data-ie-root][data-ie-brand-bg="true"] {
+  --ie-sheet-bg: color-mix(
+    in oklch,
+    var(--ie-sheet-bg-base) 92%,
+    var(--ie-brand, var(--ie-sheet-bg-base)) 8%
+  );
 }
 
 [data-ie-root],
@@ -266,8 +331,10 @@
 
 [data-ie-root][data-ie-presentation="inline"] {
   position: absolute;
-  inset: 0;
+  inset: var(--ie-inline-padding, 0);
   z-index: 2;
+  border-radius: var(--ie-inline-radius, 0);
+  overflow: hidden;
 }
 
 [data-ie-root][data-ie-presentation="inline"] [data-ie-part="backdrop"] {
@@ -287,7 +354,7 @@
   height: 100%;
   max-width: none;
   max-height: none;
-  border-radius: 0;
+  border-radius: var(--ie-inline-radius, 0);
   box-shadow: none;
 }
 
@@ -297,6 +364,7 @@
   z-index: 10000;
   width: 100%;
   height: 100%;
+  border-radius: 0;
   background: var(--ie-bg);
 }
 
@@ -605,7 +673,7 @@
   gap: 10px;
   padding: 8px 16px;
   min-height: 54px;
-  background: var(--ie-bg);
+  background: var(--ie-sheet-bg);
   border-bottom: 1px solid var(--ie-border);
 }
 
@@ -778,10 +846,16 @@
 
 [data-ie-part="done-button"]:hover:not(:disabled) {
   background: color-mix(in srgb, var(--ie-accent-hover) 95%, black 5%);
+  transition: color 160ms ease, background-color 160ms ease;
 
   @media (max-width: 480px) {
     background: var(--ie-accent-hover);
   }
+}
+
+[data-ie-theme="dark"] [data-ie-part="done-button"]:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--ie-accent-hover) 95%, black 30%);
+  transition: color 160ms ease, background-color 160ms ease;
 }
 
 [data-ie-part="done-button"]:active:not(:disabled) {
@@ -1100,6 +1174,8 @@
   display: flex;
   flex-direction: column;
   overflow: visible;
+  background: var(--ie-sheet-bg);
+  --ie-bg: var(--ie-sheet-bg);
 
   @media (max-width: 767px) {
     padding: 0 10px;
@@ -1869,6 +1945,7 @@
   z-index: 5;
   flex-shrink: 0;
   overflow: hidden;
+  background: var(--ie-sheet-bg);
   transition: height var(--ie-mode-duration) var(--ie-mode-ease);
 }
 
@@ -3194,12 +3271,8 @@
 
 .ie-export-result-download {
   border: none;
-  background: oklch(55.5% 0.46 16.439);
+  background: var(--ie-accent);
   color: #fff;
-}
-
-.ie-export-result[data-ie-theme="dark"] .ie-export-result-download {
-  background: oklch(62% 0.42 16.439);
 }
 
 .ie-export-result-close {
@@ -6206,6 +6279,19 @@
   display: block;
   width: 100%;
   height: 100%;
+}
+
+/*
+ * Light/dark token swaps must not ride the interaction transitions
+ * (sidebar color, crop-mask shadow, mode-badge color/stroke).
+ * The attribute is set for one frame when `theme` changes.
+ */
+[data-ie-root][data-ie-theme-instant] [data-ie-part="sidebar-button"],
+[data-ie-root][data-ie-theme-instant] [data-ie-part="viewport"] [data-ie-part="crop-mask"],
+[data-ie-root][data-ie-theme-instant] .ie-mode-badge-track,
+[data-ie-root][data-ie-theme-instant] .ie-mode-badge-progress,
+[data-ie-root][data-ie-theme-instant] .ie-mode-badge-icon svg {
+  transition: none !important;
 }
 
 [data-ie-root][data-ie-eyedrop="true"] .ie-shape-badge,

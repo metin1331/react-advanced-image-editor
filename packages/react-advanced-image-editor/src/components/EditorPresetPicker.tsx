@@ -20,6 +20,7 @@ type Props = {
   /** Compact icon trigger used in the crop sub-toolbar (≤480px). */
   variant?: "bar" | "toolbar";
   theme?: "light" | "dark";
+  brandColor?: string;
 };
 
 function IconPresetMenu() {
@@ -84,6 +85,7 @@ export function EditorPresetPicker({
   config = {},
   variant = "bar",
   theme,
+  brandColor,
 }: Props) {
   const triggerRef = useRef<HTMLDivElement>(null);
   const iconRef = useRef<HTMLSpanElement>(null);
@@ -301,6 +303,9 @@ export function EditorPresetPicker({
               left: menuPos?.left ?? 0,
               minWidth: menuPos?.minWidth ?? 168,
               maxHeight: menuPos?.maxHeight ?? 240,
+              ...(brandColor?.trim()
+                ? { ["--ie-brand" as string]: brandColor.trim() }
+                : {}),
             }}
             onPointerDown={(event) => event.stopPropagation()}
           >
