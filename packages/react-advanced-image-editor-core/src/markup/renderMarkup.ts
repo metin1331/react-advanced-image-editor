@@ -68,10 +68,14 @@ function paintStroke(
 ) {
   const style = strokeStyleFor(stroke.tool);
   const lineW = pixelWidth(stroke.width, width, height, style.widthScale);
+  const userAlpha =
+    stroke.tool === 'eraser'
+      ? 1
+      : Math.min(1, Math.max(0, stroke.opacity ?? 1));
 
   ctx.save();
   ctx.globalCompositeOperation = style.composite;
-  ctx.globalAlpha = style.opacity;
+  ctx.globalAlpha = style.opacity * userAlpha;
   ctx.strokeStyle = stroke.tool === 'eraser' ? '#000' : stroke.color;
   ctx.lineWidth = lineW;
   ctx.lineCap = 'round';
@@ -86,7 +90,7 @@ function paintStroke(
   ctx.stroke();
 
   if (stroke.tool === 'pencil' && stroke.points.length > 1) {
-    ctx.globalAlpha = style.opacity * 0.45;
+    ctx.globalAlpha = style.opacity * userAlpha * 0.45;
     ctx.lineWidth = lineW * 0.55;
     ctx.shadowBlur = 0;
     strokePath(ctx, stroke.points, width, height);

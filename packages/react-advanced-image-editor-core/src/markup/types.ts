@@ -48,6 +48,8 @@ export interface MarkupStroke {
   color: string;
   /** Stroke diameter as a fraction of the frame's short side. */
   width: number;
+  /** User ink alpha, 0–1. Multiplied by the tool's base opacity. Omitted = 1. */
+  opacity?: number;
   points: MarkupPoint[];
 }
 
@@ -284,6 +286,9 @@ function normalizeStroke(raw: Record<string, unknown>): MarkupStroke | null {
     tool: (raw.tool as MarkupStroke['tool']) || 'pen',
     color: String(raw.color || '#000000'),
     width: Math.max(0.001, Number(raw.width) || 0.01),
+    ...(Number.isFinite(Number(raw.opacity))
+      ? { opacity: Math.min(1, Math.max(0, Number(raw.opacity))) }
+      : {}),
     points: points.map((p) => {
       const point: MarkupPoint = { x: Number(p.x), y: Number(p.y) };
       if (p.p != null) point.p = Number(p.p);

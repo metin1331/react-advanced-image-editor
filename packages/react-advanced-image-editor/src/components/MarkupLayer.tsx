@@ -28,6 +28,7 @@ import {
   type MarkupTool,
   preloadMarkupStickers,
 } from 'react-advanced-image-editor-core';
+import { parseCssColor, toHex6 } from '../color/cssColor';
 import { MarkupShapeBadge } from './MarkupShapeBadge';
 import type { MarkupShapeBadgeLabels } from './MarkupShapeBadge';
 import { MarkupTextBadge } from './MarkupTextBadge';
@@ -54,6 +55,8 @@ export type MarkupLayerProps = {
   eraserMode: EraserMode;
   color: string;
   strokeWidth: number;
+  /** User ink alpha for new strokes, 0–1. */
+  strokeOpacity?: number;
   shapeKind: MarkupShapeKind;
   textAlign: MarkupTextAlign;
   ruler: MarkupRuler;
@@ -272,6 +275,7 @@ export function MarkupLayer({
   eraserMode,
   color,
   strokeWidth,
+  strokeOpacity = 1,
   shapeKind,
   textAlign,
   ruler,
@@ -425,7 +429,10 @@ export function MarkupLayer({
     const shape =
       shapeKind === 'line' || shapeKind === 'arrow'
         ? shapeFromDrag(shapeKind, x, y + h / 2, x + w, y + h / 2, id, color, strokeWidth)
-        : shapeFromDrag(shapeKind, x, y, x + w, y + h, id, color, strokeWidth);
+        : {
+            ...shapeFromDrag(shapeKind, x, y, x + w, y + h, id, color, strokeWidth),
+            fill: color,
+          };
     onCommit({ objects: [...markupRef.current.objects, shape] });
     onSelectedIdsChange([id]);
     lastPlacedRef.current.shape = { x, y };
@@ -1519,8 +1526,9 @@ export function MarkupLayer({
           kind: 'stroke',
           id: newId(),
           tool: drawTool,
-          color,
+          color: toHex6(parseCssColor(color)),
           width: strokeWidth,
+          opacity: drawTool === 'eraser' ? 1 : strokeOpacity,
           points: [drawPt],
         };
         schedulePaint();
@@ -1924,6 +1932,7 @@ export function MarkupLayer({
     eraserMode,
     color,
     strokeWidth,
+    strokeOpacity,
     shapeKind,
     textAlign,
     signatureTemplate,

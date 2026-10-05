@@ -21,7 +21,7 @@ export const MARKUP_PRESET_COLORS = [
   "#ff2d55",
 ] as const;
 
-export const MARKUP_STROKE_WIDTHS = [0.006, 0.012, 0.02, 0.032] as const;
+export const MARKUP_STROKE_WIDTHS = [0.006, 0.012, 0.02, 0.032, 0.048] as const;
 
 export const MARKUP_SHAPE_KINDS = [
   "rect",
@@ -73,6 +73,7 @@ export type MarkupToolbarLabels = {
   alignLeft: string;
   alignCenter: string;
   alignRight: string;
+  opacity: string;
 };
 
 export const defaultMarkupLabels: MarkupToolbarLabels = {
@@ -101,6 +102,7 @@ export const defaultMarkupLabels: MarkupToolbarLabels = {
   alignLeft: "Align left",
   alignCenter: "Align center",
   alignRight: "Align right",
+  opacity: "Opacity",
 };
 
 type Props = {
@@ -108,6 +110,8 @@ type Props = {
   eraserMode: EraserMode;
   color: string;
   strokeWidth: number;
+  /** Shared ink alpha for every stroke width, 0–1. */
+  strokeOpacity?: number;
   shapeKind: MarkupShapeKind;
   textAlign: MarkupTextAlign;
   rulerVisible: boolean;
@@ -116,6 +120,7 @@ type Props = {
   onEraserModeChange: (mode: EraserMode) => void;
   onColorChange: (color: string) => void;
   onStrokeWidthChange: (width: number) => void;
+  onStrokeOpacityChange?: (opacity: number) => void;
   onShapeKindChange: (kind: MarkupShapeKind) => void;
   onTextAlignChange: (align: MarkupTextAlign) => void;
   onToggleRuler: () => void;
@@ -327,16 +332,32 @@ function ShapeKindIcon({ kind }: { kind: MarkupShapeKind }) {
     "aria-hidden": true as const,
   };
   if (kind === "rect") {
-    return <svg {...common}><rect x="5" y="5" width="14" height="14" /></svg>;
+    return (
+      <svg {...common}>
+        <rect x="5" y="5" width="14" height="14" />
+      </svg>
+    );
   }
   if (kind === "roundRect") {
-    return <svg {...common}><rect x="5" y="5" width="14" height="14" rx="4" /></svg>;
+    return (
+      <svg {...common}>
+        <rect x="5" y="5" width="14" height="14" rx="4" />
+      </svg>
+    );
   }
   if (kind === "circle") {
-    return <svg {...common}><circle cx="12" cy="12" r="7" /></svg>;
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="7" />
+      </svg>
+    );
   }
   if (kind === "triangle") {
-    return <svg {...common}><path d="M12 5.5 19.5 18.5h-15Z" /></svg>;
+    return (
+      <svg {...common}>
+        <path d="M12 5.5 19.5 18.5h-15Z" />
+      </svg>
+    );
   }
   if (kind === "hexagon") {
     return (
@@ -374,7 +395,11 @@ function ShapeKindIcon({ kind }: { kind: MarkupShapeKind }) {
       </svg>
     );
   }
-  return <svg {...common}><path d="M5 12h14" /></svg>;
+  return (
+    <svg {...common}>
+      <path d="M5 12h14" />
+    </svg>
+  );
 }
 
 function PlusIcon() {
@@ -452,11 +477,114 @@ function AddMenuIcon({ kind }: { kind: AddMenuKind }) {
   );
 }
 
+const WIDTH_ICON_STROKES = [1.5, 2.1, 2.7, 3.3, 3.9];
+
+function WidthWaveIcon({ strokeWidth }: { strokeWidth: number }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M12 2q2 2.5 0 5t0 5 0 5 0 5" />
+      <path d="M19 2q2 2.5 0 5t0 5 0 5 0 5" />
+      <path d="M5 2q2 2.5 0 5t0 5 0 5 0 5" />
+    </svg>
+  );
+}
+
+function MarkupOpacitySlider({
+  label,
+  color,
+  value,
+  onChange,
+}: {
+  label: string;
+  color: string;
+  value: number;
+  onChange: (next: number) => void;
+}) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const pct = Math.round(Math.max(0, Math.min(1, value)) * 100);
+  const t = pct / 100;
+  const thumb = /^#[0-9a-fA-F]{8}$/i.test(color.trim())
+    ? color.trim().slice(0, 7)
+    : color;
+
+  const valueAt = (clientX: number) => {
+    const el = trackRef.current;
+    if (!el) return pct;
+    const rect = el.getBoundingClientRect();
+    const pad = 11;
+    const u = (clientX - rect.left - pad) / Math.max(1, rect.width - pad * 2);
+    return Math.round(Math.max(0, Math.min(1, u)) * 100);
+  };
+
+  const emit = (nextPct: number) => {
+    onChange(Math.max(0, Math.min(100, nextPct)) / 100);
+  };
+
+  return (
+    <div
+      ref={trackRef}
+      className="ie-color-picker-slider-track"
+      data-checker="true"
+      role="slider"
+      tabIndex={0}
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={pct}
+      style={
+        {
+          "--ie-color-slider-thumb": thumb,
+          "--ie-slider-t": String(t),
+        } as never
+      }
+      onPointerDown={(e) => {
+        e.preventDefault();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        emit(valueAt(e.clientX));
+      }}
+      onPointerMove={(e) => {
+        if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+        emit(valueAt(e.clientX));
+      }}
+      onKeyDown={(e) => {
+        const step = e.shiftKey ? 10 : 1;
+        if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+          e.preventDefault();
+          emit(pct - step);
+        } else if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+          e.preventDefault();
+          emit(pct + step);
+        } else if (e.key === "Home") {
+          e.preventDefault();
+          emit(0);
+        } else if (e.key === "End") {
+          e.preventDefault();
+          emit(100);
+        }
+      }}
+    >
+      <span className="ie-color-picker-slider-thumb" aria-hidden />
+    </div>
+  );
+}
+
 export function EditorMarkupToolbar({
   tool,
   eraserMode,
   color,
   strokeWidth,
+  strokeOpacity = 1,
   shapeKind,
   textAlign,
   rulerVisible,
@@ -465,6 +593,7 @@ export function EditorMarkupToolbar({
   onEraserModeChange,
   onColorChange,
   onStrokeWidthChange,
+  onStrokeOpacityChange,
   onShapeKindChange,
   onTextAlignChange,
   onToggleRuler,
@@ -607,11 +736,11 @@ export function EditorMarkupToolbar({
                   ? labels.ruler
                   : id === "text"
                     ? labels.text
-                  : id === "signature"
-                    ? labels.signature
-                    : id === "sticker"
-                      ? labels.sticker
-                      : labels.shape;
+                    : id === "signature"
+                      ? labels.signature
+                      : id === "sticker"
+                        ? labels.sticker
+                        : labels.shape;
 
   return (
     <div
@@ -693,25 +822,40 @@ export function EditorMarkupToolbar({
               </button>
             </div>
           ) : (
-            <div
-              className="ie-markup-widths"
-              role="group"
-              aria-label={labels.strokeWidth}
-            >
-              {MARKUP_STROKE_WIDTHS.map((w) => (
-                <button
-                  key={w}
-                  type="button"
-                  className="ie-markup-width"
-                  data-ie-active={
-                    Math.abs(strokeWidth - w) < 1e-6 ? "true" : undefined
-                  }
-                  onClick={() => onStrokeWidthChange(w)}
-                  aria-label={`${Math.round(w * 1000)}`}
-                >
-                  <span style={{ width: 4 + w * 420, height: 4 + w * 420 }} />
-                </button>
-              ))}
+            <div className="ie-markup-ink">
+              <div
+                className="ie-markup-widths"
+                role="group"
+                aria-label={labels.strokeWidth}
+              >
+                {MARKUP_STROKE_WIDTHS.map((w, index) => (
+                  <button
+                    key={w}
+                    type="button"
+                    className="ie-markup-width"
+                    data-ie-active={
+                      Math.abs(strokeWidth - w) < 1e-6 ? "true" : undefined
+                    }
+                    onClick={() => onStrokeWidthChange(w)}
+                    aria-label={`${Math.round(w * 1000)}`}
+                  >
+                    <WidthWaveIcon
+                      strokeWidth={
+                        WIDTH_ICON_STROKES[index] ??
+                        WIDTH_ICON_STROKES[WIDTH_ICON_STROKES.length - 1]
+                      }
+                    />
+                  </button>
+                ))}
+              </div>
+              <div className="ie-markup-opacity">
+                <MarkupOpacitySlider
+                  label={labels.opacity}
+                  color={color}
+                  value={strokeOpacity}
+                  onChange={(next) => onStrokeOpacityChange?.(next)}
+                />
+              </div>
             </div>
           )}
         </div>

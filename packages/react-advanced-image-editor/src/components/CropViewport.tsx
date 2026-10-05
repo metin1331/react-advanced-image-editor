@@ -264,6 +264,7 @@ type Props = {
   markupEraserMode?: EraserMode;
   markupColor?: string;
   markupStrokeWidth?: number;
+  markupStrokeOpacity?: number;
   markupShapeKind?: MarkupShapeKind;
   markupTextAlign?: MarkupTextAlign;
   markupRuler?: MarkupRuler;
@@ -422,6 +423,7 @@ export function CropViewport({
   markupEraserMode = 'pixel',
   markupColor = '#ff3b30',
   markupStrokeWidth = 0.012,
+  markupStrokeOpacity = 1,
   markupShapeKind = 'rect',
   markupTextAlign = 'left',
   markupRuler,
@@ -1848,6 +1850,7 @@ export function CropViewport({
               eraserMode={markupEraserMode}
               color={markupColor}
               strokeWidth={markupStrokeWidth}
+              strokeOpacity={markupStrokeOpacity}
               shapeKind={markupShapeKind}
               textAlign={markupTextAlign}
               ruler={markupRuler ?? createDefaultRuler()}

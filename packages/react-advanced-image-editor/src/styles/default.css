@@ -3391,8 +3391,8 @@
   min-height: 44px;
   padding: 8px 12px;
   border-radius: 14px;
-  background: #dddde0;
-  /* background: var(--ie-markup-glass-bg); */
+  /* background: #dddde0; */
+  background: var(--ie-markup-glass-bg);
   backdrop-filter: saturate(180%) blur(var(--ie-markup-glass-blur));
   -webkit-backdrop-filter: saturate(180%) blur(var(--ie-markup-glass-blur));
   backdrop-filter: blur(18px);
@@ -3588,35 +3588,61 @@
   pointer-events: none;
 }
 
+.ie-markup-ink {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  width: min(240px, 70vw);
+}
+
 .ie-markup-widths {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.ie-markup-opacity .ie-color-picker-slider-track {
+  height: 22px;
+  border-radius: 11px;
+}
+
+.ie-markup-opacity .ie-color-picker-slider-track[data-checker="true"] {
+  background-size:
+    100% 100%,
+    8px 8px;
+}
+
+.ie-markup-opacity .ie-color-picker-slider-thumb {
+  width: 22px;
+  height: 22px;
+  margin-top: -11px;
+  margin-left: -11px;
+  border-width: 2px;
+  left: calc(11px + var(--ie-slider-t, 0) * (100% - 22px));
 }
 
 .ie-markup-width {
   appearance: none;
   border: none;
   background: transparent;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: grid;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
   place-items: center;
   cursor: pointer;
-  color: #f5f5f7;
+  color: var(--ie-accent);
 }
 
-.ie-markup-width > span {
+.ie-markup-width svg {
   display: block;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0.55;
 }
 
-.ie-markup-width[data-ie-active="true"] > span {
-  opacity: 1;
-  background: var(--ie-accent);
+.ie-markup-width[data-ie-active="true"] {
+  background: #262526;
+  color: #ffffff;
 }
 
 .ie-markup-eraser-modes {
@@ -3630,8 +3656,12 @@
 .ie-markup-eraser-modes button {
   appearance: none;
   border: none;
-  background: transparent;
-  color: rgba(245, 245, 247, 0.7);
+  background: color-mix(in srgb, var(--ie-markup-glass-bg) 95%, black);
+  backdrop-filter: saturate(180%) blur(var(--ie-markup-glass-blur));
+  -webkit-backdrop-filter: saturate(180%) blur(var(--ie-markup-glass-blur));
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  color: #484749;
   font: inherit;
   font-size: 0.78rem;
   font-weight: 500;
@@ -3642,8 +3672,12 @@
 }
 
 .ie-markup-eraser-modes button[data-ie-active="true"] {
-  background: rgba(255, 255, 255, 0.14);
-  color: #f5f5f7;
+  background: color-mix(in srgb, var(--ie-markup-glass-bg) 95%, black);
+  backdrop-filter: saturate(180%) blur(var(--ie-markup-glass-blur));
+  -webkit-backdrop-filter: saturate(180%) blur(var(--ie-markup-glass-blur));
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  color: #484749;
 }
 
 .ie-markup-shapes {
@@ -3670,7 +3704,7 @@
 .ie-markup-shapes button {
   appearance: none;
   border: none;
-  background: color-mix(in srgb, var(--ie-markup-glass-bg) 90%, black);
+  background: color-mix(in srgb, var(--ie-markup-glass-bg) 95%, black);
   backdrop-filter: saturate(180%) blur(var(--ie-markup-glass-blur));
   -webkit-backdrop-filter: saturate(180%) blur(var(--ie-markup-glass-blur));
   backdrop-filter: blur(18px);
@@ -3695,8 +3729,8 @@
     border-radius: 6px;
 
     svg {
-      width: 32px;
-      height: 32px;
+      width: 40px;
+      height: 40px;
     }
   }
 }
@@ -3705,7 +3739,7 @@
   appearance: none;
   border: none;
   background: rgba(255, 255, 255, 0.08);
-  color: rgba(245, 245, 247, 0.78);
+  color: #484749;
   font: inherit;
   font-size: 0.72rem;
   font-weight: 500;
@@ -3717,64 +3751,42 @@
 
 .ie-markup-shapes button[data-ie-active="true"],
 .ie-markup-text-opts button[data-ie-active="true"] {
-  background: color-mix(in srgb, var(--ie-markup-glass-bg) 90%, black);
+  background: color-mix(in srgb, var(--ie-markup-glass-bg) 95%, black);
   backdrop-filter: saturate(180%) blur(var(--ie-markup-glass-blur));
   -webkit-backdrop-filter: saturate(180%) blur(var(--ie-markup-glass-blur));
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
-  color: #f5f5f7;
+  color: #484749;
 }
 
-.ie-markup-signature-pad {
-  width: 100%;
-  max-width: 420px;
-  margin: 0 auto 8px;
-  padding: 10px 12px 8px;
-  border-radius: 16px;
-  background: rgba(28, 28, 30, 0.94);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+.ie-markup-signature-sheet {
+  height: auto;
+  max-height: min(52vh, 420px);
+  gap: 8px;
 }
 
-.ie-markup-signature-pad canvas {
+.ie-markup-signature-close {
+  justify-self: start;
+}
+
+.ie-markup-signature-done {
+  justify-self: end;
+}
+
+.ie-markup-signature-done:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.ie-markup-signature-canvas {
   display: block;
   width: 100%;
-  height: 96px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.06);
+  height: 180px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.55);
   touch-action: none;
   cursor: crosshair;
-}
-
-.ie-markup-signature-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.ie-markup-signature-actions button {
-  appearance: none;
-  border: none;
-  background: rgba(255, 255, 255, 0.1);
-  color: #f5f5f7;
-  font: inherit;
-  font-size: 0.8rem;
-  font-weight: 500;
-  padding: 5px 10px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.ie-markup-signature-actions button[data-ie-primary="true"] {
-  background: var(--ie-accent);
-  color: #fff;
-}
-
-.ie-markup-signature-actions button:disabled {
-  opacity: 0.4;
-  cursor: default;
 }
 
 .ie-markup-text-editor {
@@ -3893,29 +3905,34 @@
   bottom: calc(100% + 8px);
   z-index: 12;
   min-width: 214px;
-  padding: 6px;
+  padding: 18px 0;
   border-radius: 14px;
-  background: rgba(28, 28, 30, 0.94);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+  background: var(--ie-markup-glass-bg);
+  backdrop-filter: saturate(180%) blur(var(--ie-markup-glass-blur));
+  -webkit-backdrop-filter: saturate(180%) blur(var(--ie-markup-glass-blur));
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
+  color: #f5f5f7;
   display: flex;
   flex-direction: column;
-  gap: 2px;
   animation: ie-markup-pop 160ms ease;
+
+  @media (max-width: 480px) {
+    padding: 18px 0;
+    border-radius: 30px;
+  }
 }
 
 .ie-markup-add-menu button {
   appearance: none;
   border: none;
   background: transparent;
-  color: #f2f2f7;
+  color: #3a3a3c;
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 10px 12px;
-  border-radius: 10px;
+  padding: 10px 18px;
   font: inherit;
   font-size: 15px;
   font-weight: 500;
@@ -3925,13 +3942,16 @@
 }
 
 .ie-markup-add-menu button svg {
+  width: 26px;
+  height: 26px;
   flex: 0 0 auto;
   opacity: 0.92;
+  stroke-width: 1.5;
 }
 
 .ie-markup-add-menu button:hover,
 .ie-markup-add-menu button[data-ie-active="true"] {
-  background: rgba(255, 255, 255, 0.12);
+  background: color-mix(in srgb, var(--ie-markup-glass-bg) 1%, black 5%);
 }
 
 /* —— Shape contextual badge (Markup) —— */
@@ -5274,7 +5294,7 @@
 .ie-sticker-overlay {
   position: absolute;
   inset: 0;
-  z-index: 20;
+  z-index: 32;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -5286,10 +5306,21 @@
   border: none;
   position: absolute;
   inset: 0;
+  margin: 0;
+  padding: 0;
   background: rgba(0, 0, 0, 0.28);
+  opacity: 0;
   cursor: pointer;
   pointer-events: auto;
   -webkit-tap-highlight-color: transparent;
+  -webkit-transition: opacity var(--ie-sheet-duration, 480ms)
+    var(--ie-sheet-ease, cubic-bezier(0.22, 1, 0.36, 1));
+  transition: opacity var(--ie-sheet-duration, 480ms)
+    var(--ie-sheet-ease, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.ie-sticker-overlay[data-ie-open="true"] .ie-sticker-overlay-backdrop {
+  opacity: 0.3;
 }
 
 .ie-sticker-sheet {
@@ -5299,24 +5330,22 @@
   flex-direction: column;
   gap: 8px;
   width: 100%;
-  max-height: min(48vh, 380px);
+  max-height: min(48vh, 500px);
   padding: 6px 0 10px;
   border-radius: 16px 16px 0 0;
   background: var(--ie-bg-sidebar, var(--ie-bg-muted, var(--ie-bg)));
   border-top: 1px solid var(--ie-border);
   pointer-events: auto;
-  animation: ie-sticker-sheet-in 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform: translate3d(0, 100%, 0);
+  -webkit-transition: transform var(--ie-sheet-duration, 480ms)
+    var(--ie-sheet-ease, cubic-bezier(0.22, 1, 0.36, 1));
+  transition: transform var(--ie-sheet-duration, 480ms)
+    var(--ie-sheet-ease, cubic-bezier(0.22, 1, 0.36, 1));
+  will-change: transform;
 }
 
-@keyframes ie-sticker-sheet-in {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.ie-sticker-overlay[data-ie-open="true"] .ie-sticker-sheet {
+  transform: translate3d(0, 0, 0);
 }
 
 .ie-sticker-sheet-handle {
@@ -5335,29 +5364,20 @@
 }
 
 .ie-sticker-sheet-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 14px;
+  min-height: 44px;
+  padding: 0 8px;
 }
 
 .ie-sticker-sheet-title {
-  font-size: 15px;
-  font-weight: 600;
+  margin: 0;
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--ie-text);
-}
-
-.ie-sticker-sheet-done {
-  appearance: none;
-  border: none;
-  background: transparent;
-  color: var(--ie-accent);
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 4px 2px;
-  -webkit-tap-highlight-color: transparent;
 }
 
 .ie-sticker-sheet-tabs {
@@ -5722,6 +5742,11 @@
 [data-ie-root][data-ie-markup-mode="true"] {
   --ie-markup-glass-bg: color-mix(
     in oklab,
+    var(--ie-bg-sidebar) 78%,
+    transparent
+  );
+  --ie-markup-glass-secondary-bg: color-mix(
+    in oklab,
     var(--ie-bg-sidebar) 50%,
     transparent
   );
@@ -5737,7 +5762,7 @@
   top: 0;
   left: 0;
   right: 0;
-  z-index: 24;
+  z-index: 36;
   background: transparent;
   border-bottom: none;
   pointer-events: none;
@@ -5814,7 +5839,7 @@
 
 [data-ie-root][data-ie-markup-mode="true"] .ie-topbar-center,
 [data-ie-root][data-ie-markup-mode="true"] .ie-markup-tray {
-  background: var(--ie-markup-glass-bg);
+  background: var(--ie-markup-glass-secondary-bg);
   backdrop-filter: saturate(180%) blur(var(--ie-markup-glass-blur));
   -webkit-backdrop-filter: saturate(180%) blur(var(--ie-markup-glass-blur));
 }
@@ -5886,6 +5911,10 @@
   pointer-events: none;
 }
 
+.ie-color-picker-overlay.ie-markup-signature-overlay {
+  z-index: 30;
+}
+
 .ie-color-picker-backdrop {
   appearance: none;
   border: none;
@@ -5906,7 +5935,7 @@
 }
 
 .ie-color-picker-overlay[data-ie-open="true"] .ie-color-picker-backdrop {
-  opacity: 1;
+  opacity: 0.3;
 }
 
 .ie-color-picker-sheet {
@@ -5920,11 +5949,18 @@
   max-height: 92%;
   padding: 10px 16px calc(14px + env(safe-area-inset-bottom, 0px));
   border-radius: 38px 38px 0 0;
+
+  background: var(--ie-markup-glass-bg);
+  backdrop-filter: saturate(180%) blur(var(--ie-markup-glass-blur));
+  -webkit-backdrop-filter: saturate(180%) blur(var(--ie-markup-glass-blur));
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+
   background: rgba(242, 242, 247, 0.92);
   color: #1c1c1e;
   border: 1px solid rgba(255, 255, 255, 0.55);
   border-bottom: none;
-  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.18);
+  /* box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.18); */
   -webkit-backdrop-filter: blur(40px) saturate(1.4);
   backdrop-filter: blur(40px) saturate(1.4);
   pointer-events: auto;
@@ -5976,6 +6012,10 @@
 .ie-color-picker-close {
   justify-self: end;
   background: rgba(120, 120, 128, 0.16);
+}
+
+.ie-markup-signature-sheet .ie-color-picker-close {
+  justify-self: start;
 }
 
 .ie-color-picker-tabs {
@@ -6287,7 +6327,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .ie-color-picker-backdrop,
-  .ie-color-picker-sheet {
+  .ie-color-picker-sheet,
+  .ie-sticker-overlay-backdrop,
+  .ie-sticker-sheet {
     -webkit-transition-duration: 1ms;
     transition-duration: 1ms;
   }

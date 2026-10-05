@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   DEFAULT_STICKER_EMOJIS,
   KAOMOJI_CATEGORIES,
@@ -6,6 +6,11 @@ import {
   twemojiPngUrl,
   type KaomojiCategoryId,
 } from 'react-advanced-image-editor-core';
+import {
+  SHEET_MOTION_EASE,
+  SHEET_MOTION_MS,
+  sheetMotionDurationMs,
+} from '../crop/sheetMotion';
 
 export type StickerPick = {
   emoji: string;
@@ -34,11 +39,34 @@ export function EditorStickerSheet({
   title = 'Add Sticker',
   emojiTabLabel = 'Emoji',
   kaomojiTabLabel = 'Kaomoji',
-  doneLabel = 'Done',
 }: EditorStickerSheetProps) {
   const [tab, setTab] = useState<SheetTab>('emoji');
   const [kaomojiCat, setKaomojiCat] = useState<KaomojiCategoryId>('classic');
   const [emojiReady, setEmojiReady] = useState<Record<string, boolean>>({});
+  const [mounted, setMounted] = useState(open);
+  const [shown, setShown] = useState(false);
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (open) {
+      setMounted(true);
+      let inner = 0;
+      const outer = requestAnimationFrame(() => {
+        inner = requestAnimationFrame(() => setShown(true));
+      });
+      return () => {
+        cancelAnimationFrame(outer);
+        cancelAnimationFrame(inner);
+      };
+    }
+    setShown(false);
+  }, [open]);
+
+  useEffect(() => {
+    if (open || !mounted) return;
+    const t = window.setTimeout(() => setMounted(false), sheetMotionDurationMs());
+    return () => window.clearTimeout(t);
+  }, [open, mounted]);
 
   const emojiList = useMemo(() => [...emojis], [emojis]);
   const activeKaomoji = useMemo(
@@ -61,10 +89,21 @@ export function EditorStickerSheet({
     };
   }, [open, tab, emojiList]);
 
-  if (!open) return null;
+  if (!mounted) return null;
 
   return (
-    <div className='ie-sticker-overlay' data-ie-part='sticker-overlay'>
+    <div
+      ref={overlayRef}
+      className='ie-sticker-overlay'
+      data-ie-part='sticker-overlay'
+      data-ie-open={shown ? 'true' : 'false'}
+      style={
+        {
+          '--ie-sheet-duration': `${SHEET_MOTION_MS}ms`,
+          '--ie-sheet-ease': SHEET_MOTION_EASE,
+        } as React.CSSProperties
+      }
+    >
       <button
         type='button'
         className='ie-sticker-overlay-backdrop'
@@ -85,9 +124,22 @@ export function EditorStickerSheet({
           onClick={onClose}
         />
         <header className='ie-sticker-sheet-header'>
-          <span className='ie-sticker-sheet-title'>{title}</span>
-          <button type='button' className='ie-sticker-sheet-done' onClick={onClose}>
-            {doneLabel}
+          <span aria-hidden />
+          <h2 className='ie-sticker-sheet-title'>{title}</h2>
+          <button
+            type='button'
+            className='ie-color-picker-close'
+            aria-label='Close'
+            onClick={onClose}
+          >
+            <svg width='12' height='12' viewBox='0 0 12 12' fill='none' aria-hidden>
+              <path
+                d='M2.1 2.1 9.9 9.9M9.9 2.1 2.1 9.9'
+                stroke='currentColor'
+                strokeWidth='1.7'
+                strokeLinecap='round'
+              />
+            </svg>
           </button>
         </header>
 

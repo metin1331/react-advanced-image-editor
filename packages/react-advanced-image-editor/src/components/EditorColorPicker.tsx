@@ -541,6 +541,7 @@ export function EditorColorPicker({
   const [mounted, setMounted] = useState(open);
   const [shown, setShown] = useState(false);
   const [custom, setCustom] = useState<string[]>([]);
+  const overlayRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     if (open) {
@@ -618,6 +619,7 @@ export function EditorColorPicker({
 
   return (
     <div
+      ref={overlayRef}
       className="ie-color-picker-overlay"
       data-ie-part="color-picker-overlay"
       data-ie-open={shown ? "true" : "false"}

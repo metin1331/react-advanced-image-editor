@@ -11,6 +11,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { downscaleBlob } from "react-advanced-image-editor-core";
+import { parseCssColor, toCssColor } from "../color/cssColor";
 import { useImageEditor } from "../hooks/useImageEditor";
 import { useFilterThumbnails } from "../hooks/useFilterThumbnails";
 import { CropViewport } from "./CropViewport";
@@ -1094,6 +1095,12 @@ export function ImageEditor({
   const [markupStrokeWidth, setMarkupStrokeWidth] = useState<number>(
     MARKUP_STROKE_WIDTHS[1],
   );
+  const markupStrokeOpacity = parseCssColor(markupColor).a;
+  const setMarkupStrokeOpacity = useCallback((opacity: number) => {
+    setMarkupColor((current) =>
+      toCssColor({ ...parseCssColor(current), a: opacity }),
+    );
+  }, []);
   const [markupShapeKind, setMarkupShapeKind] =
     useState<MarkupShapeKind>("rect");
   const [markupTextAlign, setMarkupTextAlign] =
@@ -2440,6 +2447,7 @@ export function ImageEditor({
                             markupEraserMode={markupEraserMode}
                             markupColor={markupColor}
                             markupStrokeWidth={markupStrokeWidth}
+                            markupStrokeOpacity={markupStrokeOpacity}
                             markupShapeKind={markupShapeKind}
                             markupTextAlign={markupTextAlign}
                             markupRuler={markupRuler}
@@ -2576,19 +2584,6 @@ export function ImageEditor({
                               cropOverlay: parts.cropOverlay,
                               cropGuide: parts.cropGuide,
                             }}
-                          />
-                          <EditorStickerSheet
-                            open={isMarkup && stickerSheetOpen}
-                            onClose={() => setStickerSheetOpen(false)}
-                            onPick={placeStickerFromSheet}
-                            title={markupLabels.sticker}
-                            emojiTabLabel={
-                              labels.markup?.stickerEmojiTab ?? "Emoji"
-                            }
-                            kaomojiTabLabel={
-                              labels.markup?.stickerKaomojiTab ?? "Kaomoji"
-                            }
-                            doneLabel={labels.markup?.done ?? "Done"}
                           />
                         </div>
 
@@ -3035,23 +3030,12 @@ export function ImageEditor({
                               data-ie-tool="annotate"
                               className={parts.bottomBar}
                             >
-                              <MarkupSignaturePad
-                                open={
-                                  markupSignaturePadOpen &&
-                                  markupTool === "signature"
-                                }
-                                color={markupColor}
-                                template={markupSignatureTemplate}
-                                clearLabel={labels.markup?.clear ?? "Clear"}
-                                doneLabel={labels.markup?.done ?? "Use"}
-                                onChange={setMarkupSignatureTemplate}
-                                onDone={() => setMarkupSignaturePadOpen(false)}
-                              />
                               <EditorMarkupToolbar
                                 tool={markupTool}
                                 eraserMode={markupEraserMode}
                                 color={markupColor}
                                 strokeWidth={markupStrokeWidth}
+                                strokeOpacity={markupStrokeOpacity}
                                 shapeKind={markupShapeKind}
                                 textAlign={markupTextAlign}
                                 rulerVisible={markupRuler.visible}
@@ -3105,6 +3089,7 @@ export function ImageEditor({
                                 onEraserModeChange={setMarkupEraserMode}
                                 onColorChange={setMarkupColor}
                                 onStrokeWidthChange={setMarkupStrokeWidth}
+                                onStrokeOpacityChange={setMarkupStrokeOpacity}
                                 onShapeKindChange={(kind) => {
                                   setMarkupShapeKind(kind);
                                   setPlaceRequestKind("shape");
@@ -3221,6 +3206,32 @@ export function ImageEditor({
                       </>
                     )}
                 </div>
+                <EditorStickerSheet
+                  open={isMarkup && stickerSheetOpen}
+                  onClose={() => setStickerSheetOpen(false)}
+                  onPick={placeStickerFromSheet}
+                  title={markupLabels.sticker}
+                  emojiTabLabel={labels.markup?.stickerEmojiTab ?? "Emoji"}
+                  kaomojiTabLabel={
+                    labels.markup?.stickerKaomojiTab ?? "Kaomoji"
+                  }
+                  doneLabel={labels.markup?.done ?? "Done"}
+                />
+                <MarkupSignaturePad
+                  open={
+                    isMarkup &&
+                    markupSignaturePadOpen &&
+                    markupTool === "signature"
+                  }
+                  color={markupColor}
+                  template={markupSignatureTemplate}
+                  title={labels.markup?.signature ?? "Signature"}
+                  closeLabel={labels.close ?? "Close"}
+                  doneLabel={labels.markup?.done ?? "Done"}
+                  onChange={setMarkupSignatureTemplate}
+                  onClose={() => setMarkupSignaturePadOpen(false)}
+                  onDone={() => setMarkupSignaturePadOpen(false)}
+                />
               </div>
               <EditorColorPicker
                 open={isMarkup && colorPickerOpen}
