@@ -558,7 +558,6 @@ body:has(.page[data-theme="dark"]) {
 .choose-image-button input {
   display: none;
 }
-
 .choose-image-button {
   position: relative;
   display: inline-flex;
@@ -576,49 +575,36 @@ body:has(.page[data-theme="dark"]) {
   font-weight: 500;
   cursor: pointer;
   transition: transform 300ms;
-
 }
 
 .choose-image-button:hover {
   transform: scale(1.05);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .choose-image-button,
-  .arrow-wrapper {
-    animation: none;
-    transition: none;
-  }
-} 
-
 .button-text {
- font-size: 16.5px;
+  font-size: 16.5px;
   position: relative;
   left: 25px;
   z-index: 2;
-
   white-space: nowrap;
 }
 
-/* Arrow */
 .arrow-wrapper {
   position: absolute;
-
   left: 15px;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
-  transition: transform 0.35s ease;
 }
 
 .arrow-current {
   transform: translateY(0);
+  transition: transform 0.35s ease;
 }
 
 .arrow-next {
   transform: translateY(200%);
+  transition: transform 0.35s ease;
 }
 
 .choose-image-button:hover .arrow-current {
@@ -627,6 +613,21 @@ body:has(.page[data-theme="dark"]) {
 
 .choose-image-button:hover .arrow-next {
   transform: translateY(0);
+}
+
+.choose-image-button:not(:hover) .arrow-current,
+.choose-image-button:not(:hover) .arrow-next {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .choose-image-button,
+  .arrow-wrapper,
+  .arrow-current,
+  .arrow-next {
+    animation: none;
+    transition: none;
+  }
 }
 
 .reopen {
