@@ -29,6 +29,8 @@
   /* topbar, chrome-slot, viewport-area. Mixed only with brandColorAffectsBackground. */
   --ie-sheet-bg-base: #ffffff;
   --ie-sheet-bg: var(--ie-sheet-bg-base);
+  /* Same color as the sheet, so the letterbox matches topbar while the image still shows through. */
+  --ie-sheet-overlay: rgb(from var(--ie-sheet-bg) r g b / 75%);
   --ie-accent: color-mix(
     in oklch,
     var(--ie-accent-base) 68%,
@@ -176,6 +178,7 @@
   --ie-chrome-hover-base: rgba(255, 255, 255, 0.1);
   --ie-chrome-active-base: rgba(255, 255, 255, 0.1);
   --ie-sheet-bg-base: #050404;
+  --ie-sheet-overlay: rgb(from var(--ie-sheet-bg) r g b / 45%);
   --ie-text: #f5f5f7;
   --ie-text-muted: #8e8e93;
   --ie-crop-border: #f5f5f7;
@@ -622,7 +625,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  background: var(--ie-bg);
+  background: var(--ie-sheet-bg);
   opacity: var(--ie-markup-main-opacity, 1);
   -webkit-transition: opacity
     var(--ie-markup-mode-fade-duration, var(--ie-markup-mode-hide-duration))
@@ -879,7 +882,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background: var(--ie-bg);
+  background: var(--ie-sheet-bg);
   /* Clip image bleed so it never escapes the editor panel. */
   overflow: hidden;
 }
@@ -1278,7 +1281,7 @@
 [data-ie-part="crop-mask"] {
   position: absolute;
   background: transparent;
-  box-shadow: 0 0 0 9999px var(--ie-bg);
+  box-shadow: 0 0 0 9999px var(--ie-sheet-bg);
   pointer-events: none;
   z-index: 2;
   transition: box-shadow var(--ie-crop-outside-hide-duration)
@@ -1288,7 +1291,7 @@
 /* Handle hold / pan: semi-transparent outside image (iPhone Photos). */
 [data-ie-part="viewport"][data-ie-crop-reveal-outside="true"]
   [data-ie-part="crop-mask"] {
-  box-shadow: 0 0 0 9999px var(--ie-overlay);
+  box-shadow: 0 0 0 9999px var(--ie-sheet-overlay);
   transition: box-shadow var(--ie-crop-outside-reveal-duration)
     var(--ie-crop-outside-reveal-ease) var(--ie-crop-outside-reveal-delay);
 }
@@ -3302,7 +3305,7 @@
   color: #19202e;
   width: 45px;
   aspect-ratio: 0.75;
-  --c: no-repeat linear-gradient(oklch(55.5% 0.46 16.439) 0 0);
+  --c: no-repeat linear-gradient(var(--ie-gold) 0 0);
   background:
     var(--c) 0% 50%,
     var(--c) 50% 50%,

@@ -209,15 +209,38 @@ export default function App() {
               ) : null}
             </div>
             <div className="chooser-actions">
-              <label className="select-image">
+              {/* <label className="select-image">
                 <input
                   type="file"
                   accept="image/*,.heic,.heif,image/heic,image/heif"
                   onChange={(e) => onPick(e.target.files?.[0] ?? null)}
                 />
-                <IconUpload />
-                {copy.chooseImage}
+                <span className="select-image-face">
+                  <span className="select-image-icon">
+                    <IconUpload />
+                    <IconUpload />
+                  </span>
+                  {copy.chooseImage}
+                </span>
+              </label> */}
+
+              <label className="choose-image-button">
+                <input
+                  type="file"
+                  accept="image/*,.heic,.heif,image/heic,image/heif"
+                  onChange={(e) => onPick(e.target.files?.[0] ?? null)}
+                />
+                <span className="button-text">{copy.chooseImage}</span>
+
+                <span className="arrow-wrapper arrow-current">
+                  <IconUpload />
+                </span>
+
+                <span className="arrow-wrapper arrow-next">
+                  <IconUpload />
+                </span>
               </label>
+              
               {file ? (
                 <button
                   type="button"
@@ -246,20 +269,20 @@ export default function App() {
         //     ? "oklch(62% 0.42 16.439)"
         //     : "oklch(55.5% 0.46 16.439)"
         // }
-        brandColorAffectsBackground={true}
-        brandColor={
-          theme === "dark" ? "oklch(72% 0.19 265)" : "oklch(55% 0.24 265)"
-        }
-        colors={{
-          accent: 'oklch(55% 0.24 265)',
-          accentHover: 'oklch(47% 0.22 265)',
-          accentSoft: 'oklch(90% 0.08 265)',
-        }}
-        darkColors={{
-          accent: 'oklch(55% 0.24 265)',
-          accentHover: 'oklch(50% 0.24 265)',
-          accentSoft: 'oklch(32% 0.10 265)',
-        }}
+        // brandColorAffectsBackground={true}
+        // brandColor={
+        //   theme === "dark" ? "oklch(72% 0.19 265)" : "oklch(55% 0.24 265)"
+        // }
+        // colors={{
+        //   accent: 'oklch(55% 0.24 265)',
+        //   accentHover: 'oklch(47% 0.22 265)',
+        //   accentSoft: 'oklch(90% 0.08 265)',
+        // }}
+        // darkColors={{
+        //   accent: 'oklch(55% 0.24 265)',
+        //   accentHover: 'oklch(50% 0.24 265)',
+        //   accentSoft: 'oklch(32% 0.10 265)',
+        // }}
         locale={locale}
         title="Edit photo"
         onPresetChange={setPreset}
@@ -449,8 +472,8 @@ function IconMoon() {
 function IconUpload() {
   return (
     <svg
-      width="24"
-      height="24"
+      width="25"
+      height="25"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
