@@ -146,7 +146,7 @@ Inline hosts read `--ie-inline-padding` and `--ie-inline-radius` (both default `
 
 `brandColorAffectsBackground` defaults to `false`. Topbar, chrome-slot, and viewport-area stay `#ffffff` in light and `#050404` in dark until you set it to `true`.
 
-`data-ie-skin` is always `ios`. There is no skin prop. [docs/theming.md](https://github.com/metin1331/react-advanced-image-editor/blob/main/packages/react-advanced-image-editor/docs/theming.md).
+`data-ie-skin` is always `default`. There is no skin prop. [docs/theming.md](https://github.com/metin1331/react-advanced-image-editor/blob/main/packages/react-advanced-image-editor/docs/theming.md).
 
 ## TypeScript
 
@@ -171,7 +171,7 @@ The component needs React 18+ and `react-dom` (`createPortal`). It is not a fram
 
 The stylesheet uses `oklch()`, `color-mix(in oklch)`, and relative color syntax `rgb(from ...)`. Calibrate and filters use WebGL. There is no `browserslist` file in the repo, and this document does not claim a minimum browser version.
 
-The loader caps the long edge at 2048px on iPhone, iPad, iPod, and when `navigator.deviceMemory` is 4 or less. Otherwise the cap is 4096px. Canvas area is also kept at or below 16,777,216 pixels.
+The loader caps the long edge at 2048px on constrained devices (`isConstrainedDevice()`: mobile WebKit user agents or `navigator.deviceMemory` of 4 or less). Otherwise the cap is 4096px. Canvas area is also kept at or below 16,777,216 pixels.
 
 ## Examples
 

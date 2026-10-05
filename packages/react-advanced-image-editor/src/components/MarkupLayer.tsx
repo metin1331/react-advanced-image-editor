@@ -1211,7 +1211,7 @@ export function MarkupLayer({
         return;
       }
 
-      // Loupes stay interactive even with the Move tool (iPhone magnifier).
+      // Loupes stay interactive even with the Move tool (magnifier).
       {
         const selectedLoupe = selectedRef.current
           .map((id) => markupRef.current.objects.find((o) => o.id === id))
@@ -1892,7 +1892,7 @@ export function MarkupLayer({
         const stroke = liveStroke.current;
         liveStroke.current = null;
         if (stroke && stroke.points.length > 0) {
-          // iOS-like: snap closed geometric gestures to clean shapes (pen only).
+          // gesture: snap closed geometric gestures to clean shapes (pen only).
           let obj: MarkupObject = stroke;
           if (stroke.tool === 'pen' && stroke.points.length >= 10) {
             const snapped = recognizeShape(

@@ -1,5 +1,5 @@
 export { ImageEditor, ImageEditorModal } from './components/ImageEditor';
-export { CropViewport, computeIosFrameSize } from './components/CropViewport';
+export { CropViewport, computeCropFrameSize } from './components/CropViewport';
 export {
   CROP_SHAPE_OPTION_IDS,
   defaultCropShapeLabels,

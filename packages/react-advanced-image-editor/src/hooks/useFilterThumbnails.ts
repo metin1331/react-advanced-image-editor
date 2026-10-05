@@ -107,7 +107,7 @@ function gradeOnCpu(
 }
 
 /**
- * One rendered preview per filter, always at intensity 1 (iPhone Photos shows
+ * One rendered preview per filter, always at intensity 1 (editors often show
  * each look at full strength no matter where the slider sits — only the main
  * image follows the slider).
  *

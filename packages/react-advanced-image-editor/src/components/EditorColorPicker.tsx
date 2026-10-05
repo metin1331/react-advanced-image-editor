@@ -517,7 +517,7 @@ function ColorGrid({
   );
 }
 
-/** iPhone Photos / Markup color picker sheet. */
+/** Markup color picker sheet. */
 export function EditorColorPicker({
   open,
   color,

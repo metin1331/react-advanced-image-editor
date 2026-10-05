@@ -462,7 +462,7 @@ type StripProps = {
 };
 
 /**
- * iOS Photos–style Adjust strip: Brightness / Contrast / Saturation / Exposure /
+ * built-in Adjust strip: Brightness / Contrast / Saturation / Exposure /
  * Vignette. Same snap-scroll circle language as the crop mode strip; the ruler
  * below mounts only after the strip settles.
  */

@@ -8,7 +8,7 @@ export type StripDragScrollOptions = {
 };
 
 /**
- * Pointer-drag so badge `<button>` strips still scroll on iOS. Native
+ * Pointer-drag so badge `<button>` strips still scroll on touch browsers. Native
  * `touch-action: pan-x` remains the mobile fallback — do not call
  * preventDefault until the pointer has actually moved.
  *

@@ -1,6 +1,6 @@
 /**
  * =============================================================================
- * COLOR ADJUSTMENTS (iOS Photos–style Calibrate / Adjust)
+ * COLOR ADJUSTMENTS (built-in Calibrate / Adjust)
  * =============================================================================
  * Values live on `AdjustState` in [-1, 1] and are applied **after** the crop /
  * transform pipeline has produced the visible frame:

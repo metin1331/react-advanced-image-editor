@@ -1,5 +1,5 @@
 /**
- * Soft magnetic alignment for the straighten ruler (iOS Photos style).
+ * Soft magnetic alignment for the straighten ruler (built-in style).
  *
  * All proximity / attraction is continuous in the angle — there is no
  * `if (angle === 0)` branch that jumps the value. Crossing a snap target is

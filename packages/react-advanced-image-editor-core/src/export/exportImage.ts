@@ -23,7 +23,7 @@ import {
 } from '../transform/perspective';
 
 /**
- * Render the visible crop frame to a canvas, matching the iOS preview model:
+ * Render the visible crop frame to a canvas, matching the live preview model:
  * fixed frame, image translated/scaled/rotated underneath.
  *
  * `containerWidth` / `containerHeight` must be the crop **frame** size in CSS pixels
@@ -62,7 +62,7 @@ export function renderToCanvas(
   const outH = clampedOut.height;
 
   // Never rasterize the full phone-camera bitmap. Size the oriented buffer to
-  // what the output will actually sample (and cap for iOS Safari).
+  // what the output will actually sample (and cap for mobile Safari).
   const destW = mediaW * scale * (outW / fw);
   const destH = mediaH * scale * (outH / fh);
   const orientedSize = clampCanvasSize(

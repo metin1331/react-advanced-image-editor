@@ -170,7 +170,7 @@ export interface MarkupSticker {
 }
 
 /**
- * Circular magnifier (iPhone Photos Markup loupe).
+ * Circular magnifier (markup loupe).
  * `x` / `y` are the center in normalized frame space; `radius` is a fraction
  * of the frame's short side; `mag` is the zoom inside the glass.
  */

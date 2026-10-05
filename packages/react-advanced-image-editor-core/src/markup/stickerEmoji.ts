@@ -1,7 +1,7 @@
 /**
  * Cross-platform emoji sticker rendering via Twemoji PNGs.
  *
- * Native `fillText(emoji)` looks different on Windows / iOS / Android and can
+ * Native `fillText(emoji)` looks different on Windows / Safari / Android and can
  * fail to color-render in some canvas environments. Twemoji bitmaps keep the
  * preview and export visually consistent.
  */

@@ -43,7 +43,7 @@ type Panel = "none" | "fill" | "stroke" | "opacity";
 type PanelPlacement = "above" | "below";
 
 /**
- * iPhone Photos–style contextual badge above a selected markup shape.
+ * built-in contextual badge above a selected markup shape.
  * Screen-axis aligned — does not rotate/scale with the shape.
  * Secondary panels are absolutely positioned so they never move the main bar.
  */

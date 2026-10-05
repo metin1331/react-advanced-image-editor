@@ -212,7 +212,7 @@ type RulerMode = EditorRulerMode;
 
 /**
  * Perspective is stored in [-1, 1] on the transform but presented on a
- * -100…100 ruler, the same range iPhone Photos uses for its keystone sliders.
+ * -100…100 ruler, the same range photo editors use for its keystone sliders.
  */
 const PERSPECTIVE_UI_SCALE = 100;
 
@@ -235,7 +235,7 @@ function uiToAdjust(value: number) {
   return Math.min(1, Math.max(-1, value / ADJUST_UI_SCALE));
 }
 
-/** Filter strength is 0…1 on state, 0–100 on the ruler (iPhone Photos scale). */
+/** Filter strength is 0…1 on state, 0–100 on the ruler (0–100 scale). */
 const FILTER_UI_SCALE = 100;
 
 function intensityToUi(value: number) {
@@ -1965,7 +1965,7 @@ export function ImageEditor({
             brandColor?.trim() && brandColorAffectsBackground ? "true" : undefined
           }
           data-ie-theme-instant={themeInstant ? "true" : undefined}
-          data-ie-skin="ios"
+          data-ie-skin="default"
           data-ie-layout={config.layout}
           data-ie-preset={config.preset}
           data-ie-crop-faded={chromeFade.faded ? "true" : undefined}

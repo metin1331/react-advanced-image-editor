@@ -1,5 +1,5 @@
 /**
- * iPhone Photos crop-shape model: orientation (Vertical/Horizontal) is a
+ * Crop-shape model: orientation (Vertical/Horizontal) is a
  * separate selection from the aspect preset (Original, Freeform, Square, …).
  */
 
@@ -95,7 +95,7 @@ const ORIENTATION_SHAPE_MAP: Partial<Record<CropShapeId, CropShapeId>> = {
   '3:2': '2:3',
 };
 
-/** iPhone lock-screen style wallpaper aspect (≈ modern Super Retina). */
+/** Lock-screen wallpaper aspect (tall phone display ≈ 9:19.5). */
 export const WALLPAPER_ASPECT = 9 / 19.5;
 
 export interface CropShapeSelection {

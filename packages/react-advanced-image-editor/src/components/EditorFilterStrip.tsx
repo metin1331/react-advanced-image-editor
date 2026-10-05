@@ -433,7 +433,7 @@ export function EditorFilterStrip({
       const hitId = hit?.getAttribute('data-ie-mode') as FilterId | null;
       startHitIdRef.current = hitId && IDS.includes(hitId) ? hitId : null;
 
-      // iOS/Safari will not send pointermove on <button> until capture is
+      // WebKit/Safari will not send pointermove on <button> until capture is
       // taken. Do not preventDefault here — that would kill the tap-to-select
       // click on desktop.
       if (e.pointerType !== 'mouse') {
@@ -495,7 +495,7 @@ export function EditorFilterStrip({
     const onTouchMove = (e: TouchEvent) => {
       if (!pointerActiveRef.current || e.touches.length === 0) return;
       isTouchRef.current = true;
-      // Claim the gesture on the first move so iOS does not dampen later
+      // Claim the gesture on the first move so the browser does not dampen later
       // samples into a page-scroll / tap.
       e.preventDefault();
       applyDrag(e.touches[0].clientX);
@@ -541,7 +541,7 @@ export function EditorFilterStrip({
     };
 
     const onPointerCancel = (e: PointerEvent) => {
-      // iOS fires pointercancel when it thinks the page is panning. Touch
+      // the browser fires pointercancel when it thinks the page is panning. Touch
       // listeners keep the drag alive; don't abort here.
       if (e.pointerType === 'touch') return;
       if (pointerIdRef.current != null && e.pointerId !== pointerIdRef.current) return;

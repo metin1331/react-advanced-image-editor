@@ -25,7 +25,7 @@ export type EditorStickerSheetProps = {
 
 type SheetTab = 'emoji' | 'kaomoji';
 
-/** iOS Markup–style sticker sheet: emoji grid + kaomoji categories. */
+/** Markup–style sticker sheet: emoji grid + kaomoji categories. */
 export function EditorStickerSheet({
   open,
   emojis = DEFAULT_STICKER_EMOJIS,

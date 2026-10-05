@@ -51,7 +51,7 @@ function OrientationGlyph({
 }
 
 /**
- * iPhone Photos crop-shape selector — replaces the bottom rotation/scale strip
+ * Crop-shape selector — replaces the bottom rotation/scale strip
  * while Crop Shape mode is open.
  */
 export function EditorCropShapePanel({

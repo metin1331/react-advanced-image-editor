@@ -235,7 +235,7 @@ export function useImageEditor(
 
   /**
    * Pick a look. Selecting a different filter restores full intensity — the
-   * same as iPhone Photos, where the slider jumps back to 100 on every new
+   * where the slider jumps back to 100 on every new
    * pick and only the *current* look remembers a pulled-back value.
    */
   const setFilterId = useCallback(

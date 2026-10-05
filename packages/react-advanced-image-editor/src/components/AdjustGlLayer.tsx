@@ -21,7 +21,7 @@ type Props = {
   /**
    * Show the cropped composition even when every adjust channel is 0.
    * Used by Calibrate / Filter so the faded source is never visible underneath
-   * an empty grade. Bake size is capped to the screen (iOS cannot hold a
+   * an empty grade. Bake size is capped to the screen (constrained devices cannot hold a
    * native-resolution texture of a 12–48MP photo).
    */
   forceVisible?: boolean;
@@ -270,7 +270,7 @@ export function AdjustGlLayer({
       ctx.drawImage(base, 0, 0);
       applyAdjustments(canvas, adjust, filter);
     } catch {
-      /* iOS may kill the canvas; leave the previous frame. */
+      /* constrained browsers may kill the canvas; leave the previous frame. */
     }
   }, [
     enabled,

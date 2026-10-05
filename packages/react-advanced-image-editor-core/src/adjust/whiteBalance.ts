@@ -1,6 +1,6 @@
 /**
  * =============================================================================
- * WARMTH / TINT — photographic white-balance (Apple Photos–style)
+ * WARMTH / TINT — photographic white-balance
  * =============================================================================
  * Not an Instagram filter and not an RGB offset. Both axes are expressed as a
  * change of illuminant, then applied with a Bradford chromatic-adaptation
@@ -26,9 +26,9 @@
  * positive → magenta. Composed into the same destination white before CAT,
  * so Warmth and Tint stay independent yet combine stably.
  *
- * Why this resembles Apple Photos
- * -------------------------------
- * Apple's Adjust > Warmth / Tint are white-balance axes, not grade LUTs.
+ * Why this reads as photographic WB
+ * ---------------------------------
+ * Warmth / Tint are white-balance axes, not grade LUTs.
  * Bradford CAT + Planckian/isotherm whites is the same family of model used
  * by camera WB and Lightroom-style temperature/tint, which is why the result
  * reads as subtle photographic correction rather than a stylized filter.

@@ -2,7 +2,7 @@ import { hasPerspective, perspectiveQuad, type CropArea } from 'react-advanced-i
 
 /**
  * =============================================================================
- * CROP COVERAGE CONSTRAINT (iOS Photos / Pintura style)
+ * CROP COVERAGE CONSTRAINT (coverage-constrained)
  * =============================================================================
  * Geometry
  * --------

@@ -10,7 +10,7 @@ export function createDefaultCrop(zoom?: number): CropArea {
 /**
  * Convert crop area + fixed frame (container) to pixel crop on oriented image.
  *
- * Matches iOS-style preview: image covers the frame at zoom=1 via
+ * Matches sheet-style preview: image covers the frame at zoom=1 via
  * `cover = max(frameW/mediaW, frameH/mediaH)`, then pan offsets apply.
  */
 export function computePixelCrop(

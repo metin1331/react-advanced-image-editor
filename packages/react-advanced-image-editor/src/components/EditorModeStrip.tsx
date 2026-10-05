@@ -357,7 +357,7 @@ export function EditorModeStrip({
 }: StripProps) {
   const [stripEl, setStripEl] = useState<HTMLDivElement | null>(null);
 
-  // Perspective sits next to Scale, mirroring the iPhone Photos ordering.
+  // Perspective sits next to Scale, mirroring the usual tool ordering.
   const modes: EditorRulerMode[] = [
     ...(showRotation ? (["rotation"] as const) : []),
     ...(showScale ? (["scale"] as const) : []),

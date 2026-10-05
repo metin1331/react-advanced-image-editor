@@ -13,16 +13,16 @@ This file lives at `packages/react-advanced-image-editor/image-editor-library.md
 
 ## Overview
 
-Chatimio ships a custom image editor inspired by **iPhone Photos crop/rotate**, built from scratch. It is split into:
+Chatimio ships a custom image editor built around crop and rotate, built from scratch. It is split into:
 
 | Package | Role |
 |---------|------|
 | `@chatimio/image-editor-core` | Headless engine: load, crop math, EXIF, rotate/flip, fine angle, export, undo/redo |
-| `@chatimio/react-image-editor` | React UI: iOS-style crop viewport, rotation ruler, modal shell, optional preset picker |
+| `@chatimio/react-image-editor` | React UI: crop viewport, rotation ruler, modal shell, optional preset picker |
 
 **Not used:** Pintura, react-easy-crop, exifr, or any i18n library inside the packages.
 
-The visual UI is designed to match iOS Photos: fixed crop frame, image pans/zooms underneath, L-shaped handles, rule-of-thirds grid, gold angle badge + tick-mark rotation ruler (−45°…+45°). The modal is only one host — consumers can embed the same components anywhere.
+The visual UI is designed around a fixed crop frame: image pans/zooms underneath, L-shaped handles, rule-of-thirds grid, gold angle badge + tick-mark rotation ruler (−45°…+45°). The modal is only one host — consumers can embed the same components anywhere.
 
 ---
 
@@ -169,7 +169,7 @@ packages/
         ├── components/
         │   ├── ImageEditorModal.tsx
         │   ├── CropViewport.tsx         # fixed frame, L-handles, thirds grid
-        │   ├── RotationRuler.tsx        # iOS tick-mark dial (−45…45)
+        │   ├── RotationRuler.tsx        # tick-mark dial (−45…45)
         │   ├── EditorModeStrip.tsx      # Rotation / Scale / Perspective circles
         │   ├── EditorCalibrateStrip.tsx # Adjust circles (Brightness…)
         │   ├── MarkupLayer.tsx          # annotate canvas + selection badges
@@ -403,7 +403,7 @@ import {
 } from '@chatimio/image-editor-core';
 ```
 
-### HEIC / HEIF (iPhone photos)
+### HEIC / HEIF
 
 Chrome and Firefox cannot decode HEIC natively. `loadImageSource` detects HEIC
 (mime, `.heic`/`.heif` name, or `ftyp` brand) and converts to JPEG in the browser
@@ -463,9 +463,9 @@ Full plan: `.cursor/plans/image_editor_library_7741d6ea.plan.md`
 
 ---
 
-## iOS crop / rotate UI
+## Crop / rotate UI
 
-Visual source of truth: iPhone Photos crop screen.
+Visual source of truth: crop screen.
 
 ### Interaction model
 
@@ -474,7 +474,7 @@ Visual source of truth: iPhone Photos crop screen.
 - **Handles:** thick black L-corners + mid-edge segments (not square/circle knobs).
 - **Grid:** subtle 3×3 rule-of-thirds inside the frame.
 - **Dim mask:** semi-transparent white over areas outside the crop.
-- **Rotation ruler:** circular angle badge + horizontal tick scale (−45°…+45°) with iOS-like animations.
+- **Rotation ruler:** circular angle badge + horizontal tick scale (−45°…+45°) with smooth animations.
 - **Responsive:** full-bleed on mobile; centered card on desktop (`≥768px`).
 
 ### Core: fine angle
@@ -486,7 +486,7 @@ Visual source of truth: iPhone Photos crop screen.
 | Component | Role |
 |-----------|------|
 | `CropViewport` | Fixed frame, grid, handles, pan/pinch/wheel |
-| `RotationRuler` | Angle badge + draggable tick ruler (iOS behavior) |
+| `RotationRuler` | Angle badge + draggable tick ruler (ruler behavior) |
 | `ImageEditorModal` | Optional host shell (Cancel / Reset / Done) |
 
 ### Placement
@@ -495,9 +495,9 @@ The modal is optional. Consumers can mount `CropViewport` + `RotationRuler` in a
 
 ---
 
-## Rotation ruler (iOS scale behavior)
+## Rotation ruler (scale behavior)
 
-`RotationRuler` mirrors iPhone Photos straighten control.
+`RotationRuler` mirrors straighten control.
 
 ### Horizontal scroll (desktop + mobile)
 
@@ -841,7 +841,7 @@ opposite edges parallel and the result looks stretched rather than tilted.
 
 ---
 
-## Calibrate (iOS Photos Adjust)
+## Calibrate (Adjust)
 
 Sidebar tool **Calibrate** (renamed from the former `finetune` placeholder)
 opens an Adjust strip with the same circle + ruler interaction as Crop modes.
@@ -946,7 +946,7 @@ WebGL shader multiplies and restores Rec.709 luminance.
   so the two sliders stay independent and combine stably.
 
 This is the same family of model used by camera WB / Lightroom temperature–tint,
-which is why the look stays subtle and photographic (Apple Photos Adjust) rather
+which is why the look stays subtle and photographic rather
 than an Instagram-style grade.
 
 ### WebGL pipeline — cropped frame only
@@ -1002,11 +1002,11 @@ values < 0), or CSS `--ie-mode-calibrate-*`.
 
 ---
 
-## Filter (iOS Photos Filters)
+## Filter (Filters)
 
 Sidebar tool `filter`. A horizontally snap-scrolling carousel of look previews
 rendered from the **photo being edited**, with an intensity ruler underneath —
-the iPhone Photos Filters section, with the heading rendered as "Filter".
+the Filters section, with the heading rendered as "Filter".
 
 ### State
 
@@ -1056,7 +1056,7 @@ while it scrolls. Export (`exportImage`) and the CPU fallback
 
 `useFilterThumbnails` bakes the crop composition **once** at ~132px through
 `renderToCanvas`, then re-grades that one canvas per look via the shared export
-renderer. Every tile is drawn at intensity 1 (as in Photos — only the main
+renderer. Every tile is drawn at intensity 1 (only the main
 image follows the slider), so dragging intensity never regenerates the strip.
 Thumbnails include the current Calibrate grade and are cached until the
 composition or grade changes, so re-entering the tool does not flash.
@@ -1088,7 +1088,7 @@ Sizing/colour hooks on `[data-ie-part='bottom-bar'][data-ie-tool='filter']`:
 
 ---
 
-## Markup (iOS Photos Annotate)
+## Markup (Annotate)
 
 Sidebar tool **Markup** (`tools.annotate` / legacy name `annotate`). Drawing,
 shapes, text, stickers, signature, ruler, and eraser objects live in crop-frame
@@ -1141,9 +1141,9 @@ rotate with the text box.
 Double-tap a placed text object to enter inline edit mode (`textarea` overlay).
 The Aa menu is for styling, not re-entering edit mode.
 
-### Aa secondary menu (iPhone Photos reference)
+### Aa secondary menu (built-in editor reference)
 
-Tapping **Aa** opens a compact four-row panel inspired by **iPhone Photos →
+Tapping **Aa** opens a compact four-row panel inspired by **Markup →
 Markup → Text → Aa**. Rows are fixed-height; opening a row control never
 resizes the badge or moves the text object.
 
@@ -1300,7 +1300,7 @@ Core re-exports: `MarkupText`, `MarkupTextAlign`, `DEFAULT_MARKUP_FONT_ID`,
 
 ### 2026-08-13 (Markup text Aa menu)
 
-- Documented **Markup** sidebar tool: text selection badge, iPhone Photos–style
+- Documented **Markup** sidebar tool: text selection badge, built-in
   **Aa** secondary menu (style / size / font / alignment rows).
 - Added `fonts` prop on `ImageEditorModal` for host-provided text faces; Default
   system font always included.
@@ -1311,7 +1311,7 @@ Core re-exports: `MarkupText`, `MarkupTextAlign`, `DEFAULT_MARKUP_FONT_ID`,
 
 ### 2026-08-09 (Filter tool)
 
-- New sidebar tool **Filter** — iOS Photos Filters carousel with live
+- New sidebar tool **Filter** — Filters carousel with live
   thumbnails and an intensity ruler.
 - `FILTER_IDS` / `FilterState` registry in core `types.ts`; `filter` added to
   `EditorSnapshot` with `updateFilter` / `patchFilter` history verbs.
@@ -1349,7 +1349,7 @@ Core re-exports: `MarkupText`, `MarkupTextAlign`, `DEFAULT_MARKUP_FONT_ID`,
 
 ### 2026-08-08 (calibrate / adjust tool)
 
-- Sidebar **Calibrate** (was `finetune`) — iOS Photos Adjust circles + ruler.
+- Sidebar **Calibrate** (was `finetune`) — Adjust circles + ruler.
 - `AdjustState` on the editor snapshot; adjustments run **after** crop/transform.
 
 ### 2026-08-08 (perspective / keystone tools)
@@ -1381,7 +1381,7 @@ Core re-exports: `MarkupText`, `MarkupTextAlign`, `DEFAULT_MARKUP_FONT_ID`,
 
 ### 2026-08-07 (one-sided trailing tick ramp)
 
-- Replaced center bell-curve heights with iOS-style trail: peak at main tick; +values ramp on the left, −values on the right.
+- Replaced center bell-curve heights with sheet-style trail: peak at main tick; +values ramp on the left, −values on the right.
 - Center marker is a grey dot; main tick uses active sign color.
 
 ### 2026-08-07 (tick heights from live center distance)
@@ -1392,17 +1392,17 @@ Core re-exports: `MarkupText`, `MarkupTextAlign`, `DEFAULT_MARKUP_FONT_ID`,
 
 - Ruler is natively horizontally scrollable (hidden scrollbar) on desktop and mobile: touch pan, click-drag, wheel/trackpad, arrow keys.
 
-### 2026-08-07 (rotation ruler iOS polish)
+### 2026-08-07 (rotation ruler polish)
 
 - Tick heights animate from center distance while dragging; spring back on release (`animateTicks`, default `true`).
 - Angle badge: dual-layer circular border (inactive opacity + active arc); always enabled.
 - Sign-based colors: ≤0 → black, >0 → brand accent; overridable via `negativeColor` / `positiveColor` and CSS vars.
 - Positive arc clockwise, negative counter-clockwise; live drag + short settle on release.
-- Documented in this file under **Rotation ruler (iOS scale behavior)**.
+- Documented in this file under **Rotation ruler (scale behavior)**.
 
-### 2026-08-07 (iOS crop UI)
+### 2026-08-07 (crop UI)
 
-- Rebuilt crop UI to match **iPhone Photos**: fixed frame, L-handles, thirds grid, dimmed outside.
+- Rebuilt crop UI to match the built-in crop UI: fixed frame, L-handles, thirds grid, dimmed outside.
 - Added `RotationRuler` (−45…+45) with gold accent badge and tick marks.
 - Added `TransformState.angle` for continuous rotation; export/draw pipeline updated.
 - `computePixelCrop` aligned with cover-frame preview math (frame size = export container).

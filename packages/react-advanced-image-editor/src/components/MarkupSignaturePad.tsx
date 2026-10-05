@@ -25,7 +25,7 @@ function eventPoint(canvas: HTMLCanvasElement, e: PointerEvent): MarkupPoint {
   };
 }
 
-/** iOS-style signature capture strip shown above the markup tray. */
+/** sheet-style signature capture strip shown above the markup tray. */
 export function MarkupSignaturePad({
   open,
   color,

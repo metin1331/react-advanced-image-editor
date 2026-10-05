@@ -1,5 +1,5 @@
 /**
- * iPhone Photos–style crop-frame geometry + handle resize.
+ * built-in crop-frame geometry + handle resize.
  *
  * Gestures are expressed against an absolute viewport rectangle with a stable
  * opposite edge/corner. The centered `frameScale` model is derived from that
@@ -41,7 +41,7 @@ function clamp(n: number, lo: number, hi: number) {
  * Axis-aligned crop window centered in the viewport.
  * Single source of truth for mask, overlay, and handles.
  */
-export function computeIosFrameSize(
+export function computeCropFrameSize(
   vw: number,
   vh: number,
   aspectRatio: number | null,
@@ -295,12 +295,12 @@ export function projectHandleResize(opts: {
         ? desired.width / desired.height
         : 1;
 
-  const atFull = computeIosFrameSize(vw, vh, nextAspect, 1);
+  const atFull = computeCropFrameSize(vw, vh, nextAspect, 1);
   let frameScale =
     atFull.width > 0 ? desired.width / atFull.width : maxFrameScale;
   frameScale = clamp(frameScale, minFrameScale, maxFrameScale);
 
-  const centered = computeIosFrameSize(vw, vh, nextAspect, frameScale);
+  const centered = computeCropFrameSize(vw, vh, nextAspect, frameScale);
 
   return {
     desired,

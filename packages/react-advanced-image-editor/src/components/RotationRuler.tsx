@@ -337,7 +337,7 @@ export function RotationRuler({
 
   const lastScrollLeftRef = useRef<number | null>(null);
   const lastScrollTimeRef = useRef(0);
-  /** Smoothed speed — lag gives the weighted iOS feel */
+  /** Smoothed speed — lag gives the weighted feel */
   const velocityRef = useRef(0);
   const trailRadiusRef = useRef(0);
   /** Hysteresis: once flowing, stay flowing until speed drops below EXIT */

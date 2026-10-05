@@ -499,7 +499,7 @@ export interface ImageEditorLabels extends Partial<Record<AdjustChannel, string>
   /** Sidebar tool names (optional) */
   tools?: {
     crop?: string;
-    /** iOS Photos Adjust — formerly "finetune". */
+    /** Adjust — formerly "finetune". */
     calibrate?: string;
     /** @deprecated Use `calibrate`. */
     finetune?: string;

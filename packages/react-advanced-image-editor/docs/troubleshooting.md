@@ -26,7 +26,7 @@ The control calls no Fullscreen API. The root gets `position: fixed; inset: 0` a
 
 ## Export is smaller than the file I opened
 
-The loader caps the working image. `getMaxWorkingEdge()` is `2048` on a constrained device and `4096` otherwise. Constrained means an iPhone, iPad, or iPod user agent, or `navigator.deviceMemory` of 4 or less. Preview bakes for calibrate and filter use `1600` on those devices and `4096` otherwise. `clampCanvasSize` also refuses canvases above 16,777,216 pixels. `exportOptions.maxWidth` / `maxHeight` cap the file you receive on top of that.
+The loader caps the working image. `getMaxWorkingEdge()` is `2048` on a constrained device and `4096` otherwise. Constrained means `isConstrainedDevice()` is true (mobile WebKit user agent or `navigator.deviceMemory` of 4 or less). Preview bakes for calibrate and filter use `1600` on those devices and `4096` otherwise. `clampCanvasSize` also refuses canvases above 16,777,216 pixels. `exportOptions.maxWidth` / `maxHeight` cap the file you receive on top of that.
 
 ## HEIC fails to decode
 

@@ -1,11 +1,11 @@
-/** iOS Safari historically rejects canvases above ~16MP and kills the tab sooner. */
+/** mobile Safari historically rejects canvases above ~16MP and kills the tab sooner. */
 export const MAX_CANVAS_PIXELS = 16_777_216;
 
 /** Working copy inside the editor. Far below a 12–48MP phone photo. */
 export const MAX_WORKING_EDGE_MOBILE = 2048;
 export const MAX_WORKING_EDGE_DESKTOP = 4096;
 
-/** Live Calibrate / Filter bake — must fit a WebGL texture on iPhone. */
+/** Live Calibrate / Filter bake — must fit a WebGL texture on a mobile device. */
 export const MAX_PREVIEW_EDGE_MOBILE = 1600;
 export const MAX_PREVIEW_EDGE_DESKTOP = 4096;
 

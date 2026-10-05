@@ -20,7 +20,7 @@ async function loadElement(src: string, crossOrigin = false): Promise<HTMLImageE
     const msg = err instanceof Error ? err.message : String(err);
     if (/cannot be decoded|decode/i.test(msg)) {
       throw new Error(
-        'The source image cannot be decoded. If this is a HEIC/HEIF photo from an iPhone, the editor will try to convert it automatically — otherwise export it as JPEG and try again.'
+        'The source image cannot be decoded. If this is a HEIC/HEIF photo from a mobile device, the editor will try to convert it automatically — otherwise export it as JPEG and try again.'
       );
     }
     throw err instanceof Error ? err : new Error(msg);
@@ -60,7 +60,7 @@ async function loadBlobAsImage(
     working = await convertHeicToJpeg(blob);
     convertedFromHeic = true;
   } else {
-    // iOS Safari auto-orients <img> but drawImage() also sees oriented pixels;
+    // mobile Safari auto-orients <img> but drawImage() also sees oriented pixels;
     // baking here keeps preview and export in sync and caps megapixels.
     working = await bakeImageOrientation(working);
   }

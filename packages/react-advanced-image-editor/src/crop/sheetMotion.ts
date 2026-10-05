@@ -1,4 +1,4 @@
-/** iOS-style bottom-sheet present / dismiss. Same duration and curve both ways. */
+/** sheet-style bottom-sheet present / dismiss. Same duration and curve both ways. */
 export const SHEET_MOTION_MS = 480;
 export const SHEET_MOTION_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 

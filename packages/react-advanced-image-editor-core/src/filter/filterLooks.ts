@@ -1,6 +1,6 @@
 /**
  * =============================================================================
- * FILTER LOOKS (iPhone Photos "Filters" strip)
+ * FILTER LOOKS (Filters strip)
  * =============================================================================
  * A look is a small set of photographic parameters, not a baked LUT. Two
  * reasons:
@@ -126,7 +126,7 @@ export const FILTER_LOOKS: Record<FilterId, FilterLook> = {
   }),
 };
 
-/** Apple selects a filter at full strength; the slider only pulls it back. */
+/** Selecting a filter starts at full strength; the slider only pulls it back. */
 export const DEFAULT_FILTER_INTENSITY = 1;
 
 export const FILTER_EPSILON = 1e-4;

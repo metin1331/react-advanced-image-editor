@@ -183,7 +183,7 @@ Set on the root or slots by `ImageEditor`:
 | `data-ie-root` | Present on the editor root. |
 | `data-ie-presentation` | `modal` or `inline`. |
 | `data-ie-theme` | `light` or `dark`. |
-| `data-ie-skin` | Always `ios`. There is no skin prop. |
+| `data-ie-skin` | Always `default`. There is no skin prop. |
 | `data-ie-layout` | `full`, `compact`, or `minimal`. |
 | `data-ie-preset` | Active preset id. |
 | `data-ie-fullscreen` | `true` while the CSS fullscreen mode is on. |
@@ -206,7 +206,7 @@ These are exported from the package entry. `ImageEditor` is the integration most
 | `useImageEditor` | Hook. `(source, options?: { initialZoom?: number })`. |
 | `editorPresets`, `resolveEditorConfig`, `createEditorConfig` | Preset helpers |
 | `editorLocales`, `editorLocaleNames`, `editorLocaleIntro`, `editorMessages`, `resolveEditorLocale` | i18n |
-| `CropViewport`, `computeIosFrameSize` | Crop surface |
+| `CropViewport`, `computeCropFrameSize` | Crop surface |
 | `RotationRuler` | Ruler |
 | `EditorModeStrip`, `EditorModeBadge`, `EditorPerspectiveBadge` | Mode strip |
 | `EditorCalibrateStrip`, `CALIBRATE_CHANNELS` | Calibrate UI |

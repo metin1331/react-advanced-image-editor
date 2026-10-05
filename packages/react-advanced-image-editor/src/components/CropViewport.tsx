@@ -48,7 +48,7 @@ import {
   type CoverageGeometry,
 } from '../crop/cropConstraint';
 import {
-  computeIosFrameSize,
+  computeCropFrameSize,
   FRAME_EDGE_PAD,
   MAX_FRAME_SCALE,
   MIN_FRAME_SCALE,
@@ -80,7 +80,7 @@ import { MarkupLayer } from './MarkupLayer';
 import { MarkupEyedropLayer } from './MarkupEyedropLayer';
 import { RedactLayer } from './RedactLayer';
 
-export { computeIosFrameSize } from '../crop/cropFrameResize';
+export { computeCropFrameSize } from '../crop/cropFrameResize';
 
 /** Hold before reveal / hold before hide — matches outside-crop overlay sequencing. */
 function useTimedVisible(
@@ -216,7 +216,7 @@ type Props = {
   transform: TransformState;
   aspectRatio: number | null;
   /**
-   * iPhone Photos Freeform: corner/edge handles may change the frame aspect.
+   * Freeform: corner/edge handles may change the frame aspect.
    * When false (default), handles only scale the window at a locked ratio.
    */
   freeform?: boolean;
@@ -635,8 +635,8 @@ export function CropViewport({
 
   /** Geometry for a given frame scale — the single source of truth for limits. */
   const geometryFor = useCallback(
-    (fScale: number, aspect = frameAspect): CoverageGeometry & { frame: ReturnType<typeof computeIosFrameSize> } => {
-      const frame = computeIosFrameSize(vw, vh, aspect, fScale);
+    (fScale: number, aspect = frameAspect): CoverageGeometry & { frame: ReturnType<typeof computeCropFrameSize> } => {
+      const frame = computeCropFrameSize(vw, vh, aspect, fScale);
       const cover =
         mw > 0 && mh > 0 ? Math.max(frame.width / mw, frame.height / mh) : 1;
       return {
@@ -810,7 +810,7 @@ export function CropViewport({
         : `translate(${x}px, ${y}px) scale(${z})`;
     el.style.willChange = z > 1.001 ? 'transform' : '';
 
-    // Crisp samples past 1:1 with the baked pixels (Windows Photos style).
+    // Crisp samples past 1:1 with the baked pixels.
     const canvas = el.querySelector(
       '[data-ie-part="adjust-gl"]'
     ) as HTMLCanvasElement | null;
@@ -1088,7 +1088,7 @@ export function CropViewport({
   const computeMetricsForViewport = useCallback(
     (viewW: number, viewH: number, fScale: number) => {
       const aspect = frameAspect;
-      const nextFrame = computeIosFrameSize(viewW, viewH, aspect, fScale);
+      const nextFrame = computeCropFrameSize(viewW, viewH, aspect, fScale);
       const cover =
         mw > 0 && mh > 0
           ? Math.max(nextFrame.width / mw, nextFrame.height / mh)
@@ -1344,7 +1344,7 @@ export function CropViewport({
       viewZoom: viewZoomRef.current,
       viewPan: { ...viewPanRef.current },
       aspect,
-      frame: computeIosFrameSize(vw, vh, aspect, fScale),
+      frame: computeCropFrameSize(vw, vh, aspect, fScale),
     };
   };
 
@@ -1452,7 +1452,7 @@ export function CropViewport({
       return;
     }
 
-    // ---- Handle drag: iPhone-style opposite-edge resize ----
+    // ---- Handle drag: sheet-style opposite-edge resize ----
     // pan / pinch already returned — remaining modes are the 8 crop handles.
     const handle = dragMode.current as CropHandle;
 
@@ -1661,7 +1661,7 @@ export function CropViewport({
     <div
       ref={setViewportNode}
       data-ie-part='viewport'
-      data-ie-skin='ios'
+      data-ie-skin='default'
       data-ie-interacting={interacting ? 'true' : 'false'}
       data-ie-crop-settling={cropSettling ? 'true' : undefined}
       data-ie-mode-transition={modeTransitionActive ? 'true' : undefined}
@@ -1931,7 +1931,7 @@ export function CropViewport({
 
       <div
         data-ie-part='cropOverlay'
-        data-ie-skin='ios'
+        data-ie-skin='default'
         data-ie-chrome={cropChromeOn ? 'on' : 'off'}
         data-ie-overlay-visible={cropOverlayVisible ? 'true' : 'false'}
         className={classNames.cropOverlay}

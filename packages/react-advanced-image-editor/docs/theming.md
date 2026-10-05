@@ -1,6 +1,6 @@
 # Theming
 
-The editor has two built-in token sets and one optional brand mix. There is no skin prop. The root always sets `data-ie-skin="ios"`, and crop-handle CSS is written against `[data-ie-part="cropOverlay"][data-ie-skin="ios"]`.
+The editor has two built-in token sets and one optional brand mix. There is no skin prop. The root always sets `data-ie-skin="default"`, and crop-handle CSS is written against `[data-ie-part="cropOverlay"][data-ie-skin="default"]`.
 
 ## Light and dark
 
@@ -88,4 +88,4 @@ Inline props win over that stylesheet rule for the same variable.
 
 ## Skins
 
-Only `ios` is applied, and it is fixed. Adding `[data-ie-skin="material"]` in your CSS will not run unless you set the attribute yourself after render. The component sets `data-ie-skin="ios"` on every open.
+Only `default` is applied, and it is fixed. Adding another `[data-ie-skin]` value in your CSS will not run unless you set the attribute yourself after render. The component sets `data-ie-skin="default"` on every open.

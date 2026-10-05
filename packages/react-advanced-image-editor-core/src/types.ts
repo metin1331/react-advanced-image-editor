@@ -39,7 +39,7 @@ export interface TransformState {
   /** Discrete quarter turns applied before fine angle */
   rotation: Rotation;
   /**
-   * Continuous rotation in degrees (typically -45…45 for iOS-style crop).
+   * Continuous rotation in degrees (typically -45…45 for sheet-style crop).
    * Applied after `rotation` around the image center.
    */
   angle: number;
@@ -139,11 +139,11 @@ export type AdjustChannelKey = (typeof ADJUST_CHANNELS)[number];
 export type AdjustState = Record<AdjustChannelKey, number>;
 
 /**
- * Filter looks, in carousel order (iPhone Photos "Filters" row).
+ * Filter looks, in carousel order (Filters row).
  *
  * `original` is the identity entry and always sits first — selecting it is how
- * the user removes the look. The remaining ids mirror Apple's set so the
- * strip reads the same to anyone coming from Photos.
+ * the user removes the look. The remaining ids are the built-in look set used
+ * by the filter strip.
  *
  * Adding an id here wires it through `normalizeFilter` and the React strip;
  * what still needs writing is its `FilterLook` in `filter/filterLooks.ts` and
@@ -176,7 +176,7 @@ export interface FilterState {
 }
 
 /**
- * iPhone Photos crop-shape selection stored in history so Undo/Redo restores
+ * Crop-shape selection stored in history so Undo/Redo restores
  * Vertical/Horizontal + aspect preset together with pan/zoom.
  */
 export interface CropShapeSnapshot {

@@ -1,9 +1,9 @@
 /**
  * HEIC/HEIF support.
  *
- * iOS Safari (and every iOS browser, all WebKit) can decode HEIC in `<img>`.
+ * Safari and other WebKit browsers can decode HEIC in `<img>`.
  * `heic-to` (libheif WASM) is a last resort for desktop Chrome/Firefox — it is
- * far too heavy to run on an iPhone and will OOM the tab.
+ * far too heavy to run on a mobile device and will OOM the tab.
  */
 
 import { rasterizeToJpeg } from './imageLimits';
@@ -45,7 +45,7 @@ export async function isHeicSource(blob: Blob, fileName?: string): Promise<boole
   return sniffHeicBrand(blob);
 }
 
-/** Safari / iOS: decode HEIC natively, then bake a JPEG working copy. */
+/** Safari / WebKit: decode HEIC natively, then bake a JPEG working copy. */
 async function convertHeicNatively(blob: Blob): Promise<Blob> {
   const url = URL.createObjectURL(blob);
   const img = new Image();
@@ -69,7 +69,7 @@ async function convertHeicNatively(blob: Blob): Promise<Blob> {
 }
 
 /**
- * Decode HEIC → JPEG blob. Prefers the browser decoder (iPhone). WASM is
+ * Decode HEIC → JPEG blob. Prefers the browser decoder when available. WASM is
  * only used when native decode fails (desktop Chrome/Firefox).
  *
  * The result is orientation = 1 (pixels already upright).

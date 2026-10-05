@@ -119,9 +119,9 @@ type Props = {
   onShapeKindChange: (kind: MarkupShapeKind) => void;
   onTextAlignChange: (align: MarkupTextAlign) => void;
   onToggleRuler: () => void;
-  /** Opens the iOS-style sticker sheet (Markup → Sticker). */
+  /** Opens the sheet-style sticker sheet (Markup → Sticker). */
   onOpenStickerSheet?: () => void;
-  /** Opens the iOS-style Colors sheet (Markup color well). */
+  /** Opens the sheet-style Colors sheet (Markup color well). */
   onOpenColorPicker?: () => void;
   /** Places a magnifier on the photo (Markup → Add Loupe). */
   onAddLoupe?: () => void;

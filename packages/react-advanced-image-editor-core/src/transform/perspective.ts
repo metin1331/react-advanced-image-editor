@@ -34,7 +34,7 @@ export type Mat3 = [number, number, number, number, number, number, number, numb
 
 /**
  * Largest fractional edge shift at |value| = 1. At 0.42 the wide edge is 1.42×
- * and the narrow edge 0.58× the original — roughly the range of iPhone Photos.
+ * and the narrow edge 0.58× the original — a typical keystone range.
  */
 export const PERSPECTIVE_MAX_SHIFT = 0.42;
 
