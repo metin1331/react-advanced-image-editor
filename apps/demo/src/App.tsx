@@ -21,6 +21,24 @@ const PRESETS: ImageEditorPreset[] = [
 
 type OptionMenuId = "placement" | "preset" | "export" | "language";
 
+function readCssColor(el: Element, prop: string): string {
+  const specified = getComputedStyle(el).getPropertyValue(prop).trim();
+  if (!specified) return "#ffffff";
+  const probe = document.createElement("span");
+  probe.style.color = specified;
+  probe.hidden = true;
+  el.appendChild(probe);
+  const resolved = getComputedStyle(probe).color;
+  probe.remove();
+  const match = resolved.match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/);
+  if (!match) return resolved;
+  const channel = (value: string) =>
+    Math.max(0, Math.min(255, Math.round(Number(value))))
+      .toString(16)
+      .padStart(2, "0");
+  return `#${channel(match[1])}${channel(match[2])}${channel(match[3])}`;
+}
+
 export default function App() {
   const [file, setFile] = useState<File | null>(null);
   const [open, setOpen] = useState(false);
@@ -36,21 +54,27 @@ export default function App() {
   const langRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const color = open
-      ? theme === "dark"
-        ? "#050404"
-        : "#ffffff"
-      : theme === "dark"
-        ? "#1c1519"
-        : "#f7f1f3";
-    document.documentElement.style.backgroundColor = color;
+    const root = document.documentElement;
     let meta = document.querySelector('meta[name="theme-color"]');
     if (!meta) {
       meta = document.createElement("meta");
       meta.setAttribute("name", "theme-color");
       document.head.appendChild(meta);
     }
-    meta.setAttribute("content", color);
+
+    if (open) {
+      const color = theme === "dark" ? "#050404" : "#ffffff";
+      root.style.background = color;
+      meta.setAttribute("content", color);
+      return () => {
+        root.style.background = "";
+      };
+    }
+
+    root.style.background = "";
+    root.style.backgroundColor = "";
+    const page = document.querySelector(".page");
+    meta.setAttribute("content", page ? readCssColor(page, "--header-bg") : "#ffffff");
   }, [theme, open]);
 
   useEffect(() => {

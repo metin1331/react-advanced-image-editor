@@ -7,11 +7,9 @@
     sans-serif;
   line-height: 1.5;
 
+  --bg: #f7f1f3;
+  --accent: oklch(55.5% 0.46 16.439);
   --header-bg: color-mix(in srgb, var(--accent) 3%, white);
-}
-
-.page[data-theme="dark"] {
-  --header-bg: color-mix(in srgb, var(--accent) 3%, #1c1519);
 }
 
 * {
@@ -19,12 +17,22 @@
 }
 
 html {
-  background: color-mix(in srgb, var(--accent) 3%, white);
+  background:
+    linear-gradient(var(--header-bg), var(--header-bg)) top / 100%
+      env(safe-area-inset-top, 0px) no-repeat,
+    radial-gradient(
+      ellipse 150% 150% at center,
+      color-mix(in srgb, var(--accent) 8%, transparent),
+      transparent 100%
+    ),
+    var(--bg);
   color-scheme: light;
 }
 
 html:has(.page[data-theme="dark"]) {
-  background: #1c1519;
+  --bg: #1c1519;
+  --accent: oklch(62% 0.42 16.439);
+  --header-bg: color-mix(in srgb, var(--accent) 3%, #1c1519);
   color-scheme: dark;
 }
 
@@ -104,8 +112,9 @@ select {
 .topbar {
   position: relative;
   z-index: 4;
+  padding-top: env(safe-area-inset-top, 0px);
   border-bottom: 1px solid var(--line);
-  background: color-mix(in srgb, var(--accent) 3%, white);
+  background: var(--header-bg);
   backdrop-filter: blur(10px);
 }
 
