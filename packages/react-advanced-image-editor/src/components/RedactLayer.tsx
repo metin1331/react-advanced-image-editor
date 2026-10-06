@@ -131,7 +131,11 @@ export function RedactLayer({
   const liveRect = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
   const startPt = useRef<RedactPoint | null>(null);
   const lastPt = useRef<RedactPoint | null>(null);
+  const draggingId = useRef<string | null>(null);
+  const dragOrigin = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
+  const dragPos = useRef<{ x: number; y: number } | null>(null);
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
+  const [overRect, setOverRect] = useState(false);
   const [liveTick, setLiveTick] = useState(0);
   const rafPaint = useRef<number | null>(null);
   const sourceCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -263,17 +267,28 @@ export function RedactLayer({
       };
     }
 
+    const previewRegions = redactRef.current.regions.map((region) =>
+      draggingId.current && dragPos.current && region.id === draggingId.current
+        ? { ...region, x: dragPos.current.x, y: dragPos.current.y }
+        : region,
+    );
+
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, w, h);
     if (src) {
-      paintRedactPreview(ctx, src, redactRef.current, w, h, live);
+      paintRedactPreview(ctx, src, { regions: previewRegions }, w, h, live);
     }
 
+    const dragged = draggingId.current
+      ? previewRegions.find((region) => region.id === draggingId.current)
+      : null;
     const outline = liveRect.current
       ? liveRect.current
-      : selectedId
-        ? redactRef.current.regions.find((x) => x.id === selectedId)
-        : null;
+      : dragged
+        ? dragged
+        : selectedId
+          ? previewRegions.find((x) => x.id === selectedId)
+          : null;
     if (outline) {
       ctx.save();
       ctx.strokeStyle = 'rgba(10,132,255,0.95)';
@@ -353,6 +368,24 @@ export function RedactLayer({
       onChromeHoldFadeBegin?.(styleRef.current, () => pointers.current.size > 0);
       const pt = eventPoint(root, e);
       setCursor(pt);
+      if (drawModeRef.current === 'rect') {
+        const hit = hitRegion(redactRef.current.regions, pt);
+        if (hit && hit.points.length === 0) {
+          drawing.current = false;
+          livePoints.current = [];
+          liveRect.current = null;
+          startPt.current = null;
+          lastPt.current = null;
+          draggingId.current = hit.id;
+          dragOrigin.current = { x: hit.x, y: hit.y, px: pt.x, py: pt.y };
+          dragPos.current = { x: hit.x, y: hit.y };
+          setOverRect(true);
+          onSelectedChange?.(hit.id);
+          setLiveTick((t) => t + 1);
+          schedulePaint();
+          return;
+        }
+      }
       onSelectedChange?.(null);
       drawing.current = true;
       startPt.current = pt;
@@ -385,6 +418,29 @@ export function RedactLayer({
 
       const pt = eventPoint(root, e);
       setCursor(pt);
+      if (draggingId.current && dragOrigin.current) {
+        const region = redactRef.current.regions.find((item) => item.id === draggingId.current);
+        if (region) {
+          const maxX = Math.max(0, 1 - region.w);
+          const maxY = Math.max(0, 1 - region.h);
+          dragPos.current = {
+            x: Math.min(maxX, Math.max(0, dragOrigin.current.x + (pt.x - dragOrigin.current.px))),
+            y: Math.min(maxY, Math.max(0, dragOrigin.current.y + (pt.y - dragOrigin.current.py))),
+          };
+          setLiveTick((t) => t + 1);
+          schedulePaint();
+        }
+        return;
+      }
+      if (
+        !drawing.current &&
+        drawModeRef.current === 'rect' &&
+        interactRef.current !== 'move'
+      ) {
+        const hit = hitRegion(redactRef.current.regions, pt);
+        const next = Boolean(hit && hit.points.length === 0);
+        setOverRect((prev) => (prev === next ? prev : next));
+      }
       if (!drawing.current || !startPt.current) return;
 
       if (drawModeRef.current === 'rect') {
@@ -427,6 +483,31 @@ export function RedactLayer({
       }
 
       setCursor(eventPoint(root, e));
+      if (draggingId.current) {
+        const id = draggingId.current;
+        const pos = dragPos.current;
+        const origin = dragOrigin.current;
+        draggingId.current = null;
+        dragOrigin.current = null;
+        dragPos.current = null;
+        drawing.current = false;
+        if (root.hasPointerCapture(e.pointerId)) root.releasePointerCapture(e.pointerId);
+        if (pointers.current.size === 0) onChromeHoldFadeEnd?.();
+        if (
+          pos &&
+          origin &&
+          (Math.abs(pos.x - origin.x) > 0.001 || Math.abs(pos.y - origin.y) > 0.001)
+        ) {
+          onCommit({
+            regions: redactRef.current.regions.map((region) =>
+              region.id === id ? { ...region, x: pos.x, y: pos.y } : region,
+            ),
+          });
+        } else {
+          schedulePaint();
+        }
+        return;
+      }
       if (!drawing.current) {
         if (pointers.current.size === 0) {
           onChromeHoldFadeEnd?.();
@@ -507,7 +588,10 @@ export function RedactLayer({
     };
 
     const onPointerLeave = () => {
-      if (!drawing.current && !inspectMode.current) setCursor(null);
+      if (!drawing.current && !inspectMode.current && !draggingId.current) {
+        setCursor(null);
+        setOverRect(false);
+      }
     };
 
     root.addEventListener('pointerdown', onPointerDown);
@@ -536,11 +620,13 @@ export function RedactLayer({
         cursor:
           active && interactMode === 'move'
             ? 'grab'
-            : active && drawMode === 'brush'
-              ? 'none'
-              : active
-                ? 'crosshair'
-                : undefined,
+            : active && overRect && drawMode === 'rect'
+              ? 'move'
+              : active && drawMode === 'brush'
+                ? 'none'
+                : active
+                  ? 'crosshair'
+                  : undefined,
       }}
     >
       <canvas

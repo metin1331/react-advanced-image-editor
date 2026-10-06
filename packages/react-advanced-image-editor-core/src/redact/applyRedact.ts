@@ -28,6 +28,138 @@ export function applyRedact(canvas: HTMLCanvasElement, redact: RedactState): HTM
   return canvas;
 }
 
+let filterBlurWorks: boolean | null = null;
+
+/**
+ * iOS Safari ignores `ctx.filter` blur when a canvas is drawn onto itself,
+ * and on some versions ignores it for every offscreen canvas. Probe once;
+ * fall back to a separable box blur so the redact still reads on iPhone.
+ */
+function canvasFilterBlurWorks() {
+  if (filterBlurWorks != null) return filterBlurWorks;
+  try {
+    const src = document.createElement('canvas');
+    src.width = 6;
+    src.height = 6;
+    const sctx = src.getContext('2d');
+    const out = document.createElement('canvas');
+    out.width = 6;
+    out.height = 6;
+    const octx = out.getContext('2d');
+    if (!sctx || !octx || !('filter' in octx)) {
+      filterBlurWorks = false;
+      return false;
+    }
+    sctx.fillStyle = '#000';
+    sctx.fillRect(0, 0, 6, 6);
+    sctx.fillStyle = '#fff';
+    sctx.fillRect(2, 2, 2, 2);
+    octx.filter = 'blur(2px)';
+    octx.drawImage(src, 0, 0);
+    const corner = octx.getImageData(0, 0, 1, 1).data;
+    filterBlurWorks = corner[0] > 8;
+  } catch {
+    filterBlurWorks = false;
+  }
+  return filterBlurWorks;
+}
+
+function blurCanvas(source: HTMLCanvasElement, radius: number) {
+  const out = document.createElement('canvas');
+  out.width = source.width;
+  out.height = source.height;
+  const octx = out.getContext('2d');
+  if (!octx) return source;
+  if (canvasFilterBlurWorks()) {
+    octx.filter = `blur(${Math.max(1, radius)}px)`;
+    octx.drawImage(source, 0, 0);
+    return out;
+  }
+  const sctx = source.getContext('2d');
+  if (!sctx) return source;
+  const image = sctx.getImageData(0, 0, source.width, source.height);
+  boxBlurImage(image, radius);
+  octx.putImageData(image, 0, 0);
+  return out;
+}
+
+function boxBlurImage(image: ImageData, radius: number) {
+  const r = Math.max(1, Math.round(radius / 3));
+  const { width, height, data } = image;
+  const tmp = new Uint8ClampedArray(data.length);
+  for (let pass = 0; pass < 3; pass++) {
+    boxBlurAxis(data, tmp, width, height, r, true);
+    boxBlurAxis(tmp, data, width, height, r, false);
+  }
+}
+
+function boxBlurAxis(
+  src: Uint8ClampedArray,
+  dst: Uint8ClampedArray,
+  width: number,
+  height: number,
+  radius: number,
+  horizontal: boolean,
+) {
+  const span = radius * 2 + 1;
+  const clamp = (i: number, max: number) => (i < 0 ? 0 : i >= max ? max - 1 : i);
+  if (horizontal) {
+    for (let y = 0; y < height; y++) {
+      let s0 = 0;
+      let s1 = 0;
+      let s2 = 0;
+      let s3 = 0;
+      for (let k = -radius; k <= radius; k++) {
+        const i = (y * width + clamp(k, width)) * 4;
+        s0 += src[i];
+        s1 += src[i + 1];
+        s2 += src[i + 2];
+        s3 += src[i + 3];
+      }
+      for (let x = 0; x < width; x++) {
+        const o = (y * width + x) * 4;
+        dst[o] = s0 / span;
+        dst[o + 1] = s1 / span;
+        dst[o + 2] = s2 / span;
+        dst[o + 3] = s3 / span;
+        const remove = (y * width + clamp(x - radius, width)) * 4;
+        const add = (y * width + clamp(x + radius + 1, width)) * 4;
+        s0 += src[add] - src[remove];
+        s1 += src[add + 1] - src[remove + 1];
+        s2 += src[add + 2] - src[remove + 2];
+        s3 += src[add + 3] - src[remove + 3];
+      }
+    }
+    return;
+  }
+  for (let x = 0; x < width; x++) {
+    let s0 = 0;
+    let s1 = 0;
+    let s2 = 0;
+    let s3 = 0;
+    for (let k = -radius; k <= radius; k++) {
+      const i = (clamp(k, height) * width + x) * 4;
+      s0 += src[i];
+      s1 += src[i + 1];
+      s2 += src[i + 2];
+      s3 += src[i + 3];
+    }
+    for (let y = 0; y < height; y++) {
+      const o = (y * width + x) * 4;
+      dst[o] = s0 / span;
+      dst[o + 1] = s1 / span;
+      dst[o + 2] = s2 / span;
+      dst[o + 3] = s3 / span;
+      const remove = (clamp(y - radius, height) * width + x) * 4;
+      const add = (clamp(y + radius + 1, height) * width + x) * 4;
+      s0 += src[add] - src[remove];
+      s1 += src[add + 1] - src[remove + 1];
+      s2 += src[add + 2] - src[remove + 2];
+      s3 += src[add + 3] - src[remove + 3];
+    }
+  }
+}
+
 function shortSide(w: number, h: number) {
   return Math.max(1, Math.min(w, h));
 }
@@ -159,10 +291,8 @@ function applyRegion(
     const bctx = big.getContext('2d');
     if (!bctx) return;
     bctx.drawImage(source, x - pad, y - pad, cw + pad * 2, ch + pad * 2, 0, 0, big.width, big.height);
-    bctx.filter = `blur(${radius}px)`;
-    bctx.drawImage(big, 0, 0);
-    bctx.filter = 'none';
-    ectx.drawImage(big, pad, pad, cw, ch, 0, 0, cw, ch);
+    const blurred = blurCanvas(big, radius);
+    ectx.drawImage(blurred, pad, pad, cw, ch, 0, 0, cw, ch);
   } else {
     // pixelate — downsample then nearest-neighbor upscale
     const block = pixelBlockPx(region, frameW, frameH, cw, ch);
