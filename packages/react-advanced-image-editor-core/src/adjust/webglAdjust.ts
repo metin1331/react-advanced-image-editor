@@ -145,7 +145,6 @@ void main() {
     rgb = whiteBalance(rgb, u_wb);
   }
 
-  // Exposure (EV)
   rgb *= u_exposure;
 
   // Brilliance — a local tone map. The weights read the blurred guide, not
@@ -177,10 +176,8 @@ void main() {
     rgb = max(rgb + u_shadows * shadowMask(luma(rgb)), vec3(0.0));
   }
 
-  // Brightness lift
   rgb += u_brightness;
 
-  // Contrast about mid-gray
   rgb = (rgb - 0.5) * u_contrast + 0.5;
 
   // Black point — move the black floor, then rescale so white stays put.
@@ -202,7 +199,6 @@ void main() {
     rgb *= clamp(max(target, 0.0) / max(yd, 1e-4), 0.25, 4.0);
   }
 
-  // Saturation
   float y = luma(rgb);
   rgb = mix(vec3(y), rgb, u_saturation);
 

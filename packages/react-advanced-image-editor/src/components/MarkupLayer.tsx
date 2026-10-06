@@ -132,8 +132,8 @@ const RESIZE_HIT = 0.028;
 const STICKER_RESIZE_HIT = 0.055;
 const PLACE_OFFSET = { dx: 0.045, dy: 0.045 };
 const DEFAULT_TEXT_W = 0.36;
-const DEFAULT_SHAPE_W = 0.24;
-const DEFAULT_SHAPE_H = 0.24;
+/** Default shape size as a fraction of the frame's short side, in pixels. */
+const DEFAULT_SHAPE_SHORT = 0.34;
 
 function resizableBounds(
   obj: MarkupObject,
@@ -422,8 +422,15 @@ export function MarkupLayer({
   }, [color, frameShortPx, nextPlacement, onCommit, onSelectedIdsChange, textAlign]);
 
   const insertShapeAtPlacement = useCallback(() => {
-    const w = DEFAULT_SHAPE_W;
-    const h = DEFAULT_SHAPE_H;
+    const { width: fw, height: fh } = getFrameSize();
+    const short = Math.min(fw, fh);
+    const sizePx = DEFAULT_SHAPE_SHORT * short;
+    let w = sizePx / Math.max(1, fw);
+    let h = sizePx / Math.max(1, fh);
+    const limit = 0.72;
+    const fit = Math.min(1, limit / w, limit / h);
+    w *= fit;
+    h *= fit;
     const { x, y } = nextPlacement('shape', w, h);
     const id = newId();
     const shape =
@@ -436,7 +443,7 @@ export function MarkupLayer({
     onCommit({ objects: [...markupRef.current.objects, shape] });
     onSelectedIdsChange([id]);
     lastPlacedRef.current.shape = { x, y };
-  }, [color, nextPlacement, onCommit, onSelectedIdsChange, shapeKind, strokeWidth]);
+  }, [color, getFrameSize, nextPlacement, onCommit, onSelectedIdsChange, shapeKind, strokeWidth]);
 
   const insertLoupeAtPlacement = useCallback(() => {
     const radius = 0.14;
@@ -607,7 +614,6 @@ export function MarkupLayer({
     ctx.moveTo(cx - dx, cy - dy);
     ctx.lineTo(cx + dx, cy + dy);
     ctx.stroke();
-    // Tick marks
     ctx.lineWidth = 1.5;
     ctx.strokeStyle = 'rgba(60,60,67,0.55)';
     const ticks = 24;

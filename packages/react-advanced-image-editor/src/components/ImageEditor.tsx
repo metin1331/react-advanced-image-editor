@@ -635,22 +635,6 @@ function SidebarToolIcon({ id }: { id: SidebarToolId }) {
       );
     case "filter":
       return (
-        // <svg
-        //   {...common}
-        //   xmlns="http://www.w3.org/2000/svg"
-        //   viewBox="0 0 24 24"
-        //   width="24"
-        //   height="24"
-        //   fill="none"
-        //   stroke="currentColor"
-        //   stroke-width="2"
-        //   stroke-linecap="round"
-        //   stroke-linejoin="round"
-        // >
-        //   <path d="M13.58 13.79c.27.68.42 1.43.42 2.21c0 1.77-.77 3.37-2 4.46A5.93 5.93 0 0 1 8 22c-3.31 0-6-2.69-6-6c0-2.76 1.88-5.1 4.42-5.79" />
-        //   <path d="M17.58 10.21C20.12 10.9 22 13.24 22 16c0 3.31-2.69 6-6 6a5.93 5.93 0 0 1-4-1.54" />
-        //   <path d="M6 8a6 6 0 1 0 12 0A6 6 0 1 0 6 8" />
-        // </svg>
         <svg
           {...common}
           xmlns="http://www.w3.org/2000/svg"
@@ -2127,61 +2111,32 @@ export function ImageEditor({
                       )}
                     </div>
 
-                    {/* <div className="ie-topbar-right">
-                      <button className="ie-topbar-button">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="24"
-                          height="24"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        >
-                          <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                          <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z" />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        data-ie-part="done-button"
-                        className={parts.doneButton}
-                        onClick={handleSave}
-                        disabled={exporting || editor.loading || !!editor.error}
-                        aria-label={labels.save}
-                      >
-                        <span className="ie-topbar-label">{labels.save}</span>
-                        <IconCheck />
-                      </button>
-                    </div> */}
-                      <button
-                        type="button"
-                        data-ie-part="done-button"
-                        className={parts.doneButton}
-                        onClick={() => {
-                          if (isMarkup) {
-                            requestMarkupLeave(
-                              true,
-                              markupSession?.returnTool ?? "crop",
-                            );
-                            return;
-                          }
-                          void handleSave();
-                        }}
-                        disabled={
-                          isMarkup
-                            ? markupFade !== "idle" ||
-                              editor.loading ||
-                              !!editor.error
-                            : exporting || editor.loading || !!editor.error
+                    <button
+                      type="button"
+                      data-ie-part="done-button"
+                      className={parts.doneButton}
+                      onClick={() => {
+                        if (isMarkup) {
+                          requestMarkupLeave(
+                            true,
+                            markupSession?.returnTool ?? "crop",
+                          );
+                          return;
                         }
-                        aria-label={labels.save}
-                      >
-                        <span className="ie-topbar-label">{labels.save}</span>
-                        <IconCheck />
-                      </button>
+                        void handleSave();
+                      }}
+                      disabled={
+                        isMarkup
+                          ? markupFade !== "idle" ||
+                            editor.loading ||
+                            !!editor.error
+                          : exporting || editor.loading || !!editor.error
+                      }
+                      aria-label={labels.save}
+                    >
+                      <span className="ie-topbar-label">{labels.save}</span>
+                      <IconCheck />
+                    </button>
                   </header>
                 )}
 

@@ -53,7 +53,6 @@ export function applyFrame(source: HTMLCanvasElement, frame: FrameState): HTMLCa
     return canvas;
   }
 
-  // Page / mat fill
   ctx.fillStyle = f.color;
   fillRound(ctx, 0, 0, canvas.width, canvas.height, outerRadius(f, canvas));
 

@@ -87,7 +87,6 @@
   --ie-radius: 0;
   --ie-crop-border: #1c1c1e;
   --ie-crop-handle: #1c1c1e;
-  /* --ie-grid: rgba(0, 0, 0, 0.5); */
   --ie-grid: rgb(255, 255, 255);
   --ie-grid-inner: rgba(255, 255, 255, 0.42);
   --ie-font:
@@ -97,7 +96,6 @@
   --ie-blur: 20px;
   /* Alias kept for older call sites / docs that still say “gold”. */
   --ie-gold: var(--ie-accent);
-  /* Ruler */
   --ie-ruler-negative: #000000;
   --ie-ruler-positive: var(--ie-accent);
   --ie-ruler-tick: rgba(0, 0, 0, 0.22);
@@ -171,7 +169,6 @@
   --ie-accent-soft-base: oklch(38% 0.12 16.439);
   --ie-bg-base: #09090b;
   --ie-bg-muted-base: #09090b;
-  /* --ie-bg-sidebar-base: #18181b; */
   --ie-bg-sidebar-base: rgba(255, 255, 255, 0.1);
   --ie-border-base: rgba(255, 255, 255, 0.1);
   --ie-overlay-base: rgba(0, 0, 0, 0.45);
@@ -711,11 +708,6 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* [data-ie-part="button"]:hover:not(:disabled) {
-  color: var(--ie-text);
-  background: var(--ie-chrome-hover);
-} */
-
 [data-ie-part="button"]:disabled {
   opacity: 0.28;
   cursor: not-allowed;
@@ -952,7 +944,6 @@
   color: var(--ie-text-muted);
 }
 
-/* Desktop hover */
 @media (hover: hover) and (pointer: fine) {
   .ie-subtool:hover svg {
     color: var(--ie-sub-tool-color);
@@ -1132,7 +1123,6 @@
 .ie-crop-shape-option {
   appearance: none;
   border: none;
-  /* background: color-mix(in oklab, var(--ie-text) 10%, transparent); */
   color: var(--ie-text-muted);
   display: inline-flex;
   flex-direction: row;
@@ -1953,7 +1943,6 @@
   z-index: 5;
   flex-shrink: 0;
   overflow: hidden;
-  /* background: var(--ie-sheet-bg); */
   transition: height var(--ie-mode-duration) var(--ie-mode-ease);
 }
 
@@ -2078,9 +2067,6 @@
 
 [data-ie-mode-presence] {
   overflow: hidden;
-  /* transition:
-    height var(--ie-mode-duration) var(--ie-mode-ease),
-    opacity var(--ie-mode-duration) var(--ie-mode-ease); */
 }
 
 [data-ie-mode-presence][data-ie-collapse="true"] {
@@ -2414,7 +2400,6 @@
   }
 
   [data-ie-part="sub-toolbar"] {
-    /* justify-content: flex-start; */
     justify-content: center;
     align-items: center;
     gap: 2px;
@@ -2426,10 +2411,6 @@
     display: flex;
     align-items: center;
     gap: 2px;
-  }
-
-  .ie-subtool-group[data-ie-align="end"] {
-    /* margin-left: auto; */
   }
 
   .ie-preset-picker--toolbar {
@@ -2746,7 +2727,6 @@
   color: var(--ie-text);
   touch-action: pan-x;
   -webkit-tap-highlight-color: transparent;
-  /* opacity: 0.4; */
   transition: opacity 180ms ease;
   --ie-mode-track: var(--ie-mode-track-src);
   --ie-mode-progress: var(--ie-mode-progress-src);
@@ -2906,7 +2886,6 @@
   }
   .ie-mode-strip {
     --ie-mode-badge-size: 49px;
-    /* --ie-mode-badge-icon-size: 19px; */
     --ie-mode-badge-icon-size: 22px;
     height: calc(var(--ie-mode-badge-size) + 4px);
     gap: 10px;
@@ -2979,23 +2958,6 @@
 .ie-mode-label-pill > span {
   display: block;
 }
-
-/* @keyframes ie-mode-label-in {
-  from {
-    opacity: 0;
-    transform: translateY(3px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ie-mode-label-pill > span {
-    animation-duration: 1ms;
-  }
-} */
 
 /* ——— Filter strip (Filters carousel) ——— */
 
@@ -3391,7 +3353,6 @@
   min-height: 44px;
   padding: 8px 12px;
   border-radius: 14px;
-  /* background: #dddde0; */
   background: var(--ie-markup-glass-bg);
   backdrop-filter: saturate(180%) blur(var(--ie-markup-glass-blur));
   -webkit-backdrop-filter: saturate(180%) blur(var(--ie-markup-glass-blur));
@@ -3400,7 +3361,6 @@
   animation: ie-markup-pop 160ms ease;
 
   @media (max-width: 480px) {
-    margin-left: auto;
     padding: 18px 18px;
     border-radius: 30px;
   }
@@ -3880,14 +3840,6 @@
 
   svg {
   }
-}
-
-.ie-markup-add:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.ie-markup-add:active {
-  background: rgba(255, 255, 255, 0.2);
 }
 
 .ie-markup-add:disabled {
@@ -4521,7 +4473,6 @@
   color: var(--ie-text);
 }
 
-/* None */
 .ie-frame-thumb[data-ie-frame="none"] .ie-frame-thumb-mat {
   width: 28px;
   height: 34px;
@@ -4533,7 +4484,6 @@
   opacity: 0.35;
 }
 
-/* Thin / solid / thick / bleed */
 .ie-frame-thumb[data-ie-frame="thin"] .ie-frame-thumb-mat {
   background: #fff;
   padding: 2px;
@@ -4573,7 +4523,6 @@
   height: 40px;
 }
 
-/* Double */
 .ie-frame-thumb[data-ie-frame="double"] .ie-frame-thumb-mat {
   background: #fff;
   padding: 5px;
@@ -4587,7 +4536,6 @@
   height: 30px;
 }
 
-/* Inner */
 .ie-frame-thumb[data-ie-frame="inner"] .ie-frame-thumb-mat {
   padding: 0;
 }
@@ -4599,7 +4547,6 @@
     inset 0 0 0 0.5px rgba(0, 0, 0, 0.18);
 }
 
-/* Outer */
 .ie-frame-thumb[data-ie-frame="outer"] .ie-frame-thumb-mat {
   background: #fff;
   padding: 4px;
@@ -4610,7 +4557,6 @@
   height: 32px;
 }
 
-/* Rounded / soft-round */
 .ie-frame-thumb[data-ie-frame="rounded"] .ie-frame-thumb-mat {
   background: #fff;
   padding: 4px;
@@ -4635,7 +4581,6 @@
   border-radius: 11px;
 }
 
-/* Polaroid */
 .ie-frame-thumb[data-ie-frame="polaroid"] .ie-frame-thumb-mat {
   background: #f6f3ee;
   padding: 3px 3px 10px;
@@ -4647,7 +4592,6 @@
   height: 32px;
 }
 
-/* Film */
 .ie-frame-thumb[data-ie-frame="film"] .ie-frame-thumb-mat {
   background: #141414;
   padding: 4px 8px;
@@ -4678,7 +4622,6 @@
   height: 34px;
 }
 
-/* Shadow */
 .ie-frame-thumb[data-ie-frame="shadow"] {
   background: #ececec;
 }
@@ -4692,7 +4635,6 @@
   border-radius: 1px;
 }
 
-/* Offset */
 .ie-frame-thumb[data-ie-frame="offset"] .ie-frame-thumb-back {
   background: #1c1c1e;
   width: 28px;
@@ -4712,7 +4654,6 @@
   height: 34px;
 }
 
-/* Editorial */
 .ie-frame-thumb[data-ie-frame="editorial"] .ie-frame-thumb-mat {
   background: #fafafa;
   padding: 7px;
@@ -4723,7 +4664,6 @@
   height: 28px;
 }
 
-/* Classic */
 .ie-frame-thumb[data-ie-frame="classic"] .ie-frame-thumb-mat {
   background: #f1e6d2;
   padding: 4px;
@@ -4736,7 +4676,6 @@
   height: 28px;
 }
 
-/* Asymmetric */
 .ie-frame-thumb[data-ie-frame="asymmetric"] .ie-frame-thumb-mat {
   background: #f3efe6;
   padding: 3px 3px 9px 8px;
@@ -4747,7 +4686,6 @@
   box-shadow: 0 0 0 1px #1c1c1e;
 }
 
-/* Gallery */
 .ie-frame-thumb[data-ie-frame="gallery"] .ie-frame-thumb-mat {
   background: #f4f0e8;
   padding: 6px;
@@ -5753,6 +5691,80 @@
   --ie-markup-glass-blur: 5px;
 }
 
+[data-ie-root][data-ie-theme="dark"][data-ie-markup-mode="true"] {
+  --ie-bg-markup-tray: rgba(44, 44, 46, 0.94);
+  --ie-markup-glass-bg: rgba(44, 44, 46, 0.92);
+  --ie-markup-glass-secondary-bg: rgba(58, 58, 60, 0.88);
+}
+
+[data-ie-root][data-ie-theme="dark"] .ie-markup-popover,
+[data-ie-root][data-ie-theme="dark"] .ie-markup-add-menu,
+[data-ie-root][data-ie-theme="dark"] .ie-markup-tray {
+  color: #f5f5f7;
+}
+
+[data-ie-root][data-ie-theme="dark"] .ie-markup-add span {
+  background: rgba(255, 255, 255, 0.14);
+  color: #f5f5f7;
+}
+
+[data-ie-root][data-ie-theme="dark"] .ie-markup-add[data-ie-open="true"] span {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+[data-ie-root][data-ie-theme="dark"] .ie-markup-add-menu button {
+  color: #f5f5f7;
+}
+
+[data-ie-root][data-ie-theme="dark"] .ie-markup-add-menu button:hover,
+[data-ie-root][data-ie-theme="dark"]
+  .ie-markup-add-menu
+  button[data-ie-active="true"] {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-ie-root][data-ie-theme="dark"] .ie-markup-eraser-modes {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+[data-ie-root][data-ie-theme="dark"] .ie-markup-eraser-modes button,
+[data-ie-root][data-ie-theme="dark"]
+  .ie-markup-eraser-modes
+  button[data-ie-active="true"],
+[data-ie-root][data-ie-theme="dark"] .ie-markup-text-opts button,
+[data-ie-root][data-ie-theme="dark"]
+  .ie-markup-text-opts
+  button[data-ie-active="true"],
+[data-ie-root][data-ie-theme="dark"] .ie-markup-shapes button,
+[data-ie-root][data-ie-theme="dark"]
+  .ie-markup-shapes
+  button[data-ie-active="true"] {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f5f5f7;
+}
+
+[data-ie-root][data-ie-theme="dark"]
+  .ie-markup-eraser-modes
+  button[data-ie-active="true"],
+[data-ie-root][data-ie-theme="dark"]
+  .ie-markup-text-opts
+  button[data-ie-active="true"],
+[data-ie-root][data-ie-theme="dark"]
+  .ie-markup-shapes
+  button[data-ie-active="true"] {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+[data-ie-root][data-ie-theme="dark"] .ie-markup-shapes button svg {
+  color: #f5f5f7;
+  fill: #f5f5f7;
+}
+
+[data-ie-root][data-ie-theme="dark"] .ie-markup-width[data-ie-active="true"] {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+
 [data-ie-root][data-ie-markup-mode="true"] .ie-main {
   position: relative;
 }
@@ -5960,7 +5972,6 @@
   color: #1c1c1e;
   border: 1px solid rgba(255, 255, 255, 0.55);
   border-bottom: none;
-  /* box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.18); */
   -webkit-backdrop-filter: blur(40px) saturate(1.4);
   backdrop-filter: blur(40px) saturate(1.4);
   pointer-events: auto;

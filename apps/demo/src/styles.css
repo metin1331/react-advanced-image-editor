@@ -12,9 +12,20 @@
   box-sizing: border-box;
 }
 
+html {
+  background: #f7f1f3;
+  color-scheme: light;
+}
+
+html:has(.page[data-theme="dark"]) {
+  background: #1c1519;
+  color-scheme: dark;
+}
+
 body {
   margin: 0;
-  min-height: 100vh;
+  min-height: 100dvh;
+  background: transparent;
 }
 
 button,
@@ -42,7 +53,7 @@ select {
   );
 
   position: relative;
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   color: var(--ink);
@@ -69,21 +80,13 @@ select {
   --accent-ink: #ffffff;
 
   background:
-  radial-gradient(
-    ellipse 150% 150% at center,
-    color-mix(in srgb, var(--accent) 8%, transparent),
-    transparent 100%
-  ),
-
+    radial-gradient(
+      ellipse 150% 150% at center,
+      color-mix(in srgb, var(--accent) 8%, transparent),
+      transparent 100%
+    ),
+    var(--bg);
   color-scheme: dark;
-}
-
-body:has(.page[data-theme="light"]) {
-  background: #f6f1e8;
-}
-
-body:has(.page[data-theme="dark"]) {
-  background: #1b1612;
 }
 
 .topbar {
@@ -95,7 +98,7 @@ body:has(.page[data-theme="dark"]) {
 }
 
 .page[data-theme="dark"] .topbar {
-  background: color-mix(in srgb, var(--accent) 3%, #1b1612);
+  background: color-mix(in srgb, var(--accent) 3%, #1c1519);
 }
 
 .topbar-inner {

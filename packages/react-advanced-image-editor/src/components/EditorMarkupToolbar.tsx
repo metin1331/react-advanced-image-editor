@@ -302,7 +302,6 @@ function TipIcon({ tool, active }: { tool: MarkupTool; active: boolean }) {
       </svg>
     );
   }
-  // shape
   return (
     <svg {...common}>
       <rect

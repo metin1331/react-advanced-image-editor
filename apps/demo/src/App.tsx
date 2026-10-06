@@ -36,6 +36,24 @@ export default function App() {
   const langRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const color = open
+      ? theme === "dark"
+        ? "#050404"
+        : "#ffffff"
+      : theme === "dark"
+        ? "#1c1519"
+        : "#f7f1f3";
+    document.documentElement.style.backgroundColor = color;
+    let meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.setAttribute("name", "theme-color");
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute("content", color);
+  }, [theme, open]);
+
+  useEffect(() => {
     if (!openMenu) return;
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
