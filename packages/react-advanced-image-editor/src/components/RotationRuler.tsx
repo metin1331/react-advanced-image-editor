@@ -8,7 +8,7 @@ import {
   applyMagneticSnap,
   type AlignAxis,
 } from '../crop/alignSnap';
-import { attachPointerHeld } from '../crop/pointerHeld';
+import { attachPointerHeld, markScriptScroll } from '../crop/pointerHeld';
 
 const MIN_ANGLE = -45;
 const MAX_ANGLE = 45;
@@ -584,6 +584,7 @@ export function RotationRuler({
       const needsScroll = Math.abs(el.scrollLeft - next) >= 0.5;
       if (needsScroll) {
         suppressScroll.current = true;
+        markScriptScroll(el);
         el.scrollLeft = next;
       }
       requestAnimationFrame(() => {
@@ -694,11 +695,20 @@ export function RotationRuler({
         onRelease: () => {
           interactionHeldRef.current = false;
           releaseChromeHoldFade();
+          // crop-mask follows the same contact end as the chrome fade.
+          // scrollend fires when the fingers lift, while the cursor can
+          // still be over the ruler.
+          endWheelGridSession();
         },
       },
       { includeWheel: true },
     );
-  }, [chromeHoldFadeEnabled, releaseChromeHoldFade, requestChromeHoldFade]);
+  }, [
+    chromeHoldFadeEnabled,
+    endWheelGridSession,
+    releaseChromeHoldFade,
+    requestChromeHoldFade,
+  ]);
 
   /**
    * Touch contact on the ruler; touchpad wheel session ends on leave or when
@@ -818,6 +828,7 @@ export function RotationRuler({
       const gap = targetScroll - el.scrollLeft;
       if (Math.abs(gap) > 0.35) {
         suppressScroll.current = true;
+        markScriptScroll(el);
         el.scrollLeft += gap * SNAP_PULL;
         requestAnimationFrame(() => {
           suppressScroll.current = false;
@@ -857,11 +868,18 @@ export function RotationRuler({
     const onWheel = (e: WheelEvent) => {
       const dx = e.deltaX !== 0 ? e.deltaX : e.deltaY;
       if (dx === 0) return;
-      e.preventDefault();
       beginInteract();
       requestChromeHoldFade();
       beginWheelGridSession();
-      el.scrollLeft += dx;
+      // Horizontal touchpad scroll is the browser's own user scroll so
+      // `scrollend` waits until the fingers lift, even if the cursor stays
+      // over the ruler. A vertical wheel has no horizontal default action;
+      // apply that delta ourselves.
+      if (e.deltaX === 0) {
+        e.preventDefault();
+        markScriptScroll(el);
+        el.scrollLeft += dx;
+      }
       scheduleSettle();
     };
 
@@ -876,6 +894,7 @@ export function RotationRuler({
       if (!el) return;
       const dx = e.clientX - lastX.current;
       lastX.current = e.clientX;
+      markScriptScroll(el);
       el.scrollLeft -= dx;
     };
     const onUp = () => {

@@ -6,13 +6,25 @@
  *
  * A two-finger touchpad scroll only emits wheel events while the fingers
  * move. Pausing with both fingers still down is silence, so a short idle
- * must not count as release. Chrome also does not deliver the internal
- * "phase ended" wheel to the page. The hold therefore stays up until the
- * same contact-end the ruler already uses for the crop grid: pointerup,
- * pointercancel, or the pointer leaving the element. A real mouse-wheel
- * notch has no contact to wait for, so only that kind of wheel releases
- * after a short idle.
+ * must not count as release. Chrome does not deliver the internal "phase
+ * ended" wheel, and lifting the fingers does not move the cursor, so
+ * pointerleave is not the lift. `scrollend` on the scroller is: trackpad
+ * scrolling is not complete until the fingers leave, even when the cursor
+ * stays over the element. A real mouse-wheel notch has no contact to wait
+ * for, so only that kind of wheel releases after a short idle.
  */
+
+const scriptScrollUntil = new WeakMap<HTMLElement, number>();
+const SCRIPT_SCROLL_GUARD_MS = 80;
+
+/** Programmatic scrollLeft must not be treated as the fingers leaving. */
+export function markScriptScroll(el: HTMLElement) {
+  scriptScrollUntil.set(el, performance.now() + SCRIPT_SCROLL_GUARD_MS);
+}
+
+function isScriptScroll(el: HTMLElement) {
+  return performance.now() < (scriptScrollUntil.get(el) ?? 0);
+}
 
 export type AttachPointerHeldOptions = {
   /** Track touchpad / wheel bursts. */
@@ -153,6 +165,13 @@ export function attachPointerHeld(
     pulseWheelHold(e);
   };
 
+  const onScrollEnd = () => {
+    if (isScriptScroll(el)) return;
+    if (mousePen > 0 || touches.size > 0) return;
+    if (!wheelHeld) return;
+    releaseWheelHold();
+  };
+
   const onPointerLeave = () => {
     if (mousePen > 0 || touches.size > 0 || !touchpadGesture) return;
     releaseWheelHold();
@@ -162,6 +181,7 @@ export function attachPointerHeld(
   el.addEventListener('pointerleave', onPointerLeave);
   el.addEventListener('touchstart', onTouchStart, { passive: true });
   el.addEventListener('wheel', onWheel, { passive: true });
+  el.addEventListener('scrollend', onScrollEnd);
   window.addEventListener('pointerup', onPointerUp);
   window.addEventListener('pointercancel', onPointerUp);
   window.addEventListener('touchend', onTouchEnd);
@@ -172,6 +192,7 @@ export function attachPointerHeld(
     el.removeEventListener('pointerleave', onPointerLeave);
     el.removeEventListener('touchstart', onTouchStart);
     el.removeEventListener('wheel', onWheel);
+    el.removeEventListener('scrollend', onScrollEnd);
     window.removeEventListener('pointerup', onPointerUp);
     window.removeEventListener('pointercancel', onPointerUp);
     window.removeEventListener('touchend', onTouchEnd);
