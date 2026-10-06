@@ -74,10 +74,7 @@ import { EditorFrameStrip } from "./EditorFrameStrip";
 import { EditorRedactToolbar, RedactLayer } from "./RedactLayer";
 import { EditorPresetPicker } from "./EditorPresetPicker";
 import { EditorSidebarTools } from "./EditorSidebarTools";
-import {
-  ExportResultPreview,
-  ExportPageResult,
-} from "./ExportResultPreview";
+import { ExportResultPreview, ExportPageResult } from "./ExportResultPreview";
 import {
   ModeChromeSlot,
   ModePresence,
@@ -787,6 +784,56 @@ function SidebarToolIcon({ id }: { id: SidebarToolId }) {
   }
 }
 
+function IconRedactRectangle() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M5 3a2 2 0 0 0-2 2" />
+      <path d="M19 3a2 2 0 0 1 2 2" />
+      <path d="M21 19a2 2 0 0 1-2 2" />
+      <path d="M5 21a2 2 0 0 1-2-2" />
+      <path d="M9 3h1" />
+      <path d="M9 21h1" />
+      <path d="M14 3h1" />
+      <path d="M14 21h1" />
+      <path d="M3 9v1" />
+      <path d="M21 9v1" />
+      <path d="M3 14v1" />
+      <path d="M21 14v1" />
+    </svg>
+  );
+}
+
+function IconRedactBrush() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M10 2v2" />
+      <path d="M14 2v4" />
+      <path d="M17 2a1 1 0 0 1 1 1v9H6V3a1 1 0 0 1 1-1z" />
+      <path d="M6 12a1 1 0 0 0-1 1v1a2 2 0 0 0 2 2h2a1 1 0 0 1 1 1v2.9a2 2 0 1 0 4 0V17a1 1 0 0 1 1-1h2a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1" />
+    </svg>
+  );
+}
+
 function buildSidebarTools(labels: ImageEditorLabels) {
   const toolLabels = { ...defaultLabels.tools, ...labels.tools };
   const calibrateLabel =
@@ -899,7 +946,14 @@ export function ImageEditor({
         MODE_STRIP_SCROLL_FADE_EASE,
       ["--ie-mode-strip-scroll-wash" as string]: `${MODE_STRIP_SCROLL_WASH_PCT}%`,
     } as CSSProperties;
-  }, [theme, colors, darkColors, brandColor, tickWidth, resolvedMajorTickWidth]);
+  }, [
+    theme,
+    colors,
+    darkColors,
+    brandColor,
+    tickWidth,
+    resolvedMajorTickWidth,
+  ]);
   const config = useMemo(
     () =>
       resolveEditorConfig({
@@ -1953,7 +2007,9 @@ export function ImageEditor({
           data-ie-presentation={inline ? "inline" : "modal"}
           data-ie-theme={theme}
           data-ie-brand-bg={
-            brandColor?.trim() && brandColorAffectsBackground ? "true" : undefined
+            brandColor?.trim() && brandColorAffectsBackground
+              ? "true"
+              : undefined
           }
           data-ie-theme-instant={themeInstant ? "true" : undefined}
           data-ie-skin="default"
@@ -2343,7 +2399,11 @@ export function ImageEditor({
                                     setRedactDrawMode("rect");
                                   }}
                                 >
-                                  {redactLabels.rectangle ?? "Rectangle"}
+                                  {IconRedactRectangle ? (
+                                    <IconRedactRectangle />
+                                  ) : (
+                                    "Rectangle"
+                                  )}
                                 </button>
                                 <button
                                   type="button"
@@ -2360,7 +2420,11 @@ export function ImageEditor({
                                     setRedactDrawMode("brush");
                                   }}
                                 >
-                                  {redactLabels.brush ?? "Brush"}
+                                  {IconRedactBrush ? (
+                                    <IconRedactBrush />
+                                  ) : (
+                                    "Brush"
+                                  )}
                                 </button>
                               </div>
                             </div>
