@@ -4,18 +4,44 @@
  * Mouse/pen and touch are counted separately so Safari can fire both pointer
  * and touch for one gesture without double-ending.
  *
- * Wheel / touchpad: held while wheel events arrive; release after a short idle
- * when scrolling stops — not when the cursor stays over the element.
+ * A two-finger touchpad scroll only emits wheel events while the fingers
+ * move. Pausing with both fingers still down is silence, so a short idle
+ * must not count as release. Chrome also does not deliver the internal
+ * "phase ended" wheel to the page. The hold therefore stays up until the
+ * same contact-end the ruler already uses for the crop grid: pointerup,
+ * pointercancel, or the pointer leaving the element. A real mouse-wheel
+ * notch has no contact to wait for, so only that kind of wheel releases
+ * after a short idle.
  */
 
 export type AttachPointerHeldOptions = {
-  /** Track touchpad / wheel bursts; release after idle, not on pointerleave. */
+  /** Track touchpad / wheel bursts. */
   includeWheel?: boolean;
-  /** Ms without wheel events before touchpad contact is treated as ended. */
+  /** Ms without wheel events before a mouse-wheel notch is treated as ended. */
   wheelIdleMs?: number;
 };
 
 const DEFAULT_WHEEL_IDLE_MS = 150;
+
+function isZeroWheel(e: WheelEvent) {
+  return e.deltaX === 0 && e.deltaY === 0 && e.deltaZ === 0;
+}
+
+/** Discrete mouse notch (±100 / ±120). Touchpad pans are smaller or fractional. */
+function looksLikeMouseNotch(e: WheelEvent) {
+  if (e.deltaMode === WheelEvent.DOM_DELTA_LINE || e.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
+    return true;
+  }
+  const ax = Math.abs(e.deltaX);
+  const ay = Math.abs(e.deltaY);
+  if (ax > 0 && ay > 0) return false;
+  const magnitude = ax || ay;
+  return magnitude >= 40 && Math.abs(magnitude % 1) < 0.001;
+}
+
+/** Touchpad swipes emit several wheel events per frame; a mouse notch does not. */
+const TOUCHPAD_BURST_WINDOW_MS = 80;
+const TOUCHPAD_BURST_COUNT = 4;
 
 export function attachPointerHeld(
   el: HTMLElement,
@@ -28,7 +54,9 @@ export function attachPointerHeld(
   let mousePen = 0;
   const touches = new Set<number>();
   let wheelHeld = false;
+  let touchpadGesture = false;
   let wheelIdleTimer: ReturnType<typeof setTimeout> | null = null;
+  const recentWheelAt: number[] = [];
   let active = false;
 
   const wheelIdleMs = options?.wheelIdleMs ?? DEFAULT_WHEEL_IDLE_MS;
@@ -49,16 +77,40 @@ export function attachPointerHeld(
   };
 
   const releaseWheelHold = () => {
+    touchpadGesture = false;
+    recentWheelAt.length = 0;
+    clearWheelIdle();
     if (!wheelHeld) return;
     wheelHeld = false;
     sync();
   };
 
-  const pulseWheelHold = () => {
+  const noteTouchpadBurst = () => {
+    const now = performance.now();
+    recentWheelAt.push(now);
+    while (recentWheelAt.length && now - recentWheelAt[0] > TOUCHPAD_BURST_WINDOW_MS) {
+      recentWheelAt.shift();
+    }
+    if (recentWheelAt.length >= TOUCHPAD_BURST_COUNT) touchpadGesture = true;
+  };
+
+  const pulseWheelHold = (e: WheelEvent) => {
     if (!options?.includeWheel) return;
+    // A zero delta is "still in contact, not moving" when it arrives at all.
+    // Finger lift is not delivered as a DOM wheel event.
+    if (isZeroWheel(e)) {
+      touchpadGesture = true;
+      wheelHeld = true;
+      sync();
+      clearWheelIdle();
+      return;
+    }
+    noteTouchpadBurst();
+    if (!looksLikeMouseNotch(e)) touchpadGesture = true;
     wheelHeld = true;
     sync();
     clearWheelIdle();
+    if (touchpadGesture) return;
     wheelIdleTimer = setTimeout(releaseWheelHold, wheelIdleMs);
   };
 
@@ -71,10 +123,16 @@ export function attachPointerHeld(
 
   const onPointerUp = (e: PointerEvent) => {
     if (e.pointerType === 'touch') return;
-    if (mousePen > 0) mousePen -= 1;
-    clearWheelIdle();
-    wheelHeld = false;
-    sync();
+    const releasedButton = mousePen > 0;
+    if (releasedButton) mousePen -= 1;
+    if (releasedButton) {
+      if (mousePen === 0 && wheelHeld) releaseWheelHold();
+      else sync();
+      return;
+    }
+    // Buttonless pointerup is how some trackpads report the scroll gesture
+    // ending. It must not run on a pause — those emit no pointerup.
+    if (touchpadGesture && e.buttons === 0) releaseWheelHold();
   };
 
   const onTouchStart = (e: TouchEvent) => {
@@ -91,11 +149,17 @@ export function attachPointerHeld(
     sync();
   };
 
-  const onWheel = () => {
-    pulseWheelHold();
+  const onWheel = (e: WheelEvent) => {
+    pulseWheelHold(e);
+  };
+
+  const onPointerLeave = () => {
+    if (mousePen > 0 || touches.size > 0 || !touchpadGesture) return;
+    releaseWheelHold();
   };
 
   el.addEventListener('pointerdown', onPointerDown);
+  el.addEventListener('pointerleave', onPointerLeave);
   el.addEventListener('touchstart', onTouchStart, { passive: true });
   el.addEventListener('wheel', onWheel, { passive: true });
   window.addEventListener('pointerup', onPointerUp);
@@ -105,6 +169,7 @@ export function attachPointerHeld(
 
   return () => {
     el.removeEventListener('pointerdown', onPointerDown);
+    el.removeEventListener('pointerleave', onPointerLeave);
     el.removeEventListener('touchstart', onTouchStart);
     el.removeEventListener('wheel', onWheel);
     window.removeEventListener('pointerup', onPointerUp);
@@ -115,6 +180,7 @@ export function attachPointerHeld(
     mousePen = 0;
     touches.clear();
     wheelHeld = false;
+    touchpadGesture = false;
     active = false;
   };
 }
