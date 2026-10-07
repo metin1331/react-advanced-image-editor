@@ -12,6 +12,8 @@ Live demo: [react-advanced-image-editor.vercel.app](https://react-advanced-image
 
 ![demo](https://github.com/metin1331/react-advanced-image-editor/raw/main/packages/react-advanced-image-editor/demo.gif)
 
+![demo mobile](https://github.com/metin1331/react-advanced-image-editor/raw/main/packages/react-advanced-image-editor/demo-mobile.jpeg)
+
 ## Features
 
 - Crop with pan, handles, aspect ratio, guides, rotation, scale, and perspective
