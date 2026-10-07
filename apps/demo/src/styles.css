@@ -17,7 +17,7 @@
 }
 
 html {
-  background:
+  /* background:
     linear-gradient(var(--header-bg), var(--header-bg)) top / 100%
       env(safe-area-inset-top, 0px) no-repeat,
     radial-gradient(
@@ -26,26 +26,26 @@ html {
       transparent 100%
     ),
     var(--bg);
-  color-scheme: light;
+  color-scheme: light; */
 }
 
 html:has(.page[data-theme="dark"]) {
   --bg: #1c1519;
   --accent: oklch(62% 0.42 16.439);
-  --header-bg: color-mix(in srgb, var(--accent) 3%, #1c1519);
-  color-scheme: dark;
+  /* --header-bg: color-mix(in srgb, var(--accent) 3%, #1c1519);
+  color-scheme: dark; */
 }
 
 body {
   margin: 0;
   min-height: 100dvh;
-  background:
+  /* background:
     radial-gradient(
       ellipse 150% 150% at center,
       color-mix(in srgb, var(--accent) 8%, transparent),
       transparent 100%
     ),
-    var(--bg);
+    var(--bg); */
 }
 
 button,
