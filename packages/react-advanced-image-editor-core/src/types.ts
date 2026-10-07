@@ -97,7 +97,7 @@ export interface LoadedImage {
  *
  * | Channel      | Meaning                                              |
  * | ------------ | ---------------------------------------------------- |
- * | `brightness` | Midtone lift / crush                                 |
+ * | `brightness` | Gamma lift / darken; white stays white               |
  * | `contrast`   | Expand / compress around mid-gray                    |
  * | `blackPoint` | Where the darkest tone lands: crush (+) / lift (−)    |
  * | `saturation` | Chroma; −1 ≈ grayscale                               |

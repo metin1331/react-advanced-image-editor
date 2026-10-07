@@ -1,4 +1,4 @@
-# react-advanced-image-editor
+# React Advanced Image Editor
 
 React component that loads a photo, edits it, and returns a `Blob` from Done.
 
@@ -6,9 +6,11 @@ React component that loads a photo, edits it, and returns a `Blob` from Done.
 [![license](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 [![react](https://img.shields.io/badge/react-%3E%3D18-61dafb)](./package.json)
 
-The UI is one component, `ImageEditor`. Crop, calibrate, filters, markup, redact, and frames are sidebar tools. Undo and redo are in the top bar. Light and dark token sets ship in CSS. One `brandColor` can be mixed into that chrome.
+A modern, responsive image editor with cropping, straightening, color adjustments, filters, drawing, redaction, and frames. Supports multilingual interfaces, light and dark themes, undo/redo, and seamless use across desktop and mobile—as a modal or inline on the page.
 
-This repository has a Vite demo at `apps/demo`. It does not include screenshot files.
+Live demo: [react-advanced-image-editor.vercel.app](https://react-advanced-image-editor.vercel.app/)
+
+![demo](https://github.com/metin1331/react-advanced-image-editor/raw/main/packages/react-advanced-image-editor/demo.gif)
 
 ## Features
 
@@ -19,7 +21,7 @@ This repository has a Vite demo at `apps/demo`. It does not include screenshot f
 - Redact (`pixelate`, `blur`, `solid`) and frame presets
 - Undo, redo, reset
 - JPEG, PNG, or WebP export, with optional `maxWidth` / `maxHeight`
-- Locales `en`, `tr`, `jp`
+- Multilingual UI. Pass `labels` with your own strings and the editor uses that language
 - Modal (portaled to `document.body`) or inline in a host element
 
 There is no Fill tool in the sidebar. Fill APIs exist on `react-advanced-image-editor-core` only.
@@ -94,7 +96,7 @@ Close the editor yourself. `onCancel` runs for Cancel and for a backdrop click. 
   container=".stage"
   preset="profile"
   theme="dark"
-  locale="tr"
+  locale="es"
   exportOptions={{ format: 'image/webp', quality: 0.85, maxWidth: 1600 }}
   onExport={(blob) => upload(blob)}
   onCancel={() => setOpen(false)}
@@ -109,24 +111,53 @@ After Done, `exportView="preview"` (the default) shows a floating card. `exportV
 
 ## API overview
 
-| Prop | Required | Default |
-| --- | --- | --- |
-| `open` | yes | — |
-| `src` | yes | — |
-| `onExport` | yes | — |
-| `onCancel` | yes | — |
-| `presentation` | no | `'modal'` |
-| `preset` | no | `'default'` |
-| `theme` | no | `'light'` |
-| `locale` | no | `'en'` |
-| `initialZoom` | no | `1` |
-| `exportView` | no | `'preview'` |
-| `showExportPreview` | no | `true` |
-| `brandColorAffectsBackground` | no | `false` |
+Every `ImageEditor` prop. Defaults are the ones in the component, not older comments on the type.
+
+| Prop | Values | Required | Default |
+| --- | --- | --- | --- |
+| `open` | `boolean` | yes | — |
+| `src` | `File`, `Blob`, URL `string`, `HTMLImageElement`, `HTMLCanvasElement`, or `null` | yes | — |
+| `onExport` | `(blob: Blob) => void \| Promise<void>` | yes | — |
+| `onCancel` | `() => void`. Cancel and backdrop click. Does not set `open`. | yes | — |
+| `presentation` | `'modal'` \| `'inline'`. Modal portals to `document.body`. Inline fills `container`, or this component's place in the tree. | no | `'modal'` |
+| `container` | CSS selector, `HTMLElement`, or `{ current: HTMLElement \| null }` | no | — |
+| `preset` | `'default'` \| `'selection'` \| `'outside'` \| `'profile'` | no | `'default'` |
+| `features` | `Partial<ImageEditorFeatures>`. Each key is a `boolean` that shows or hides chrome: `sidebar`, `sidebarTools`, `resetButton`, `topBar`, `undoRedo`, `subToolbar`, `rotateLeft`, `flipHorizontal`, `flipVertical`, `cropShape`, `bottomBar`, `rotationTab`, `scaleTab`, `perspectiveTab`, `cornerHandles`. | no | preset |
+| `title` | `string`. On the props type. The component does not read it. | no | — |
+| `crop` | `{ aspectRatio?: number \| null; guides?: ('circle' \| 'rect')[] }` | no | preset |
+| `exportOptions` | `{ format?: 'image/jpeg' \| 'image/png' \| 'image/webp'; quality?: number; maxWidth?: number; maxHeight?: number; cropOutsideImage?: boolean }` | no | preset |
+| `cropOutsideImage` | `boolean`. Also copied into export when `exportOptions.cropOutsideImage` is omitted. | no | preset |
+| `interactionMode` | `'pan'` \| `'selection'` | no | `'pan'` |
+| `layout` | `'full'` \| `'compact'` \| `'minimal'` | no | preset |
+| `className` | `string` on the root | no | — |
+| `classNames` | Extra classes per slot: `root`, `backdrop`, `panel`, `sidebar`, `sidebarButton`, `topbar`, `workspace`, `subToolbar`, `viewport`, `canvas`, `cropOverlay`, `cropGuide`, `bottomBar`, `button`, `doneButton`. `header`, `title`, `toolbar`, `footer`, `buttonActive`, and `presetPicker` are on the type and are not read. | no | `{}` |
+| `unstyled` | `boolean`. `true` drops the `ie-modal-root` class. The stylesheet is unchanged. | no | `false` |
+| `labels` | `Partial<ImageEditorLabels>`. Your own UI strings, merged on top of `locale`. Pass a full set to attach another language. | no | locale catalog |
+| `onPresetChange` | `(preset) => void`. When set, Crop is active, and more than one picker option exists, the preset bar is shown. | no | — |
+| `presetPicker` | `{ options?: ImageEditorPreset[]; presetLabels?: Partial<Record<ImageEditorPreset, string>>; label?: string }`. `position`, `onPositionChange`, and `positionStorageKey` are ignored. | no | — |
+| `animateTicks` | `boolean`. Tick-height animation on the rotation ruler while dragging. | no | `true` |
+| `tickWidth` | `number`. Minor ruler tick width in px. | no | `2.2` |
+| `majorTickWidth` | `number`. Major ruler tick width in px. | no | `2.2` |
+| `negativeColor` | CSS color. Ruler when the value is `<= 0`. | no | `--ie-ruler-negative` |
+| `positiveColor` | CSS color. Ruler when the value is `> 0`. | no | `--ie-accent` |
+| `modeRingColors` | `Partial<ModeRingColors>`. Track and progress colors for the mode rings. | no | CSS tokens |
+| `darkModeRingColors` | `Partial<ModeRingColors>`. Used when `theme` is `'dark'`. | no | `modeRingColors` |
+| `theme` | `'light'` \| `'dark'` | no | `'light'` |
+| `locale` | Built-in catalog used as the base before `labels`. | no | `'en'` |
+| `colors` | `Partial<ImageEditorThemeColors>`. Light `--ie-*` overrides. | no | — |
+| `darkColors` | `Partial<ImageEditorThemeColors>`. Dark `--ie-*` overrides. | no | — |
+| `brandColor` | CSS color. Sets `--ie-brand` when the string is non-empty. | no | — |
+| `brandColorAffectsBackground` | `boolean`. With a non-empty `brandColor`, tints topbar, chrome-slot, and viewport-area backgrounds. | no | `false` |
+| `showExportPreview` | `boolean`. Floating card after Done. Ignored when `exportView` is `'result'`. | no | `true` |
+| `exportView` | `'preview'` \| `'result'`. `'preview'` is the floating card. `'result'` is an in-flow block instead of that card. | no | `'preview'` |
+| `exportResultContainer` | Same shape as `container`. Mount point for the result block. | no | — |
+| `initialZoom` | `number`. Opening zoom relative to cover, clamped to the preset min and max. | no | `1` |
+| `fonts` | `{ id: string; label: string; family: string }[]`. Extra markup text fonts. | no | — |
+| `showMediaSize` | `boolean`. Original pixel size in the crop chrome. | no | `true` |
 
 Presets: `default`, `selection`, `outside`, `profile`. All four use `interactionMode: 'pan'`. `outside` allows crop outside the image and exports PNG. `profile` locks aspect `1`, draws a circle guide, and turns the crop-shape control off. It does not set a max output size.
 
-`colors` and `darkColors` map to inline `--ie-*` variables. `labels` overrides strings from the locale catalog. `features` turns chrome off. The full table, callbacks, and the core export list are in [docs/api.md](https://github.com/metin1331/react-advanced-image-editor/blob/main/packages/react-advanced-image-editor/docs/api.md).
+`colors` gives you full control over individual color tokens, while `brandColor` provides a simpler way to apply your brand color across the editor. See [Theming](#theming) for the difference. For feature-flag defaults, available color keys, and the core export list, see [docs/api.md](https://github.com/metin1331/react-advanced-image-editor/blob/main/packages/react-advanced-image-editor/docs/api.md).
 
 ## Styling
 
@@ -142,9 +173,15 @@ Inline hosts read `--ie-inline-padding` and `--ie-inline-radius` (both default `
 
 ## Theming
 
-`theme="light" | "dark"` switches `data-ie-theme`. `brandColor` sets `--ie-brand`. Accent mixes about 32% of that color. Surfaces such as `--ie-bg` and `--ie-bg-sidebar` mix about 8%. Text, crop border, and grid are not mixed.
+`theme="light" | "dark"` switches the built-in light and dark sets.
 
-`brandColorAffectsBackground` defaults to `false`. Topbar, chrome-slot, and viewport-area stay `#ffffff` in light and `#050404` in dark until you set it to `true`.
+`colors` and `darkColors` are for a custom palette. You name the piece and pass the exact color. `colors.accent = "#0f6e56"` makes the accent that green. `colors` applies in light theme. `darkColors` applies in dark theme. Anything you omit stays on the built-in value.
+
+`brandColor` is one color, usually your product color. You do not list accent, sidebar, and border separately. The editor keeps its own colors and stirs yours in: accent, the Done button, and progress pick up about 32%; sidebar, borders, and similar surfaces pick up about 8%. Text, the crop border, and the grid are left alone. Omit `brandColor` and the editor looks as it shipped.
+
+If a token is set in `colors` or `darkColors`, that exact value wins over the `brandColor` mix.
+
+`brandColorAffectsBackground` defaults to `false`. The top bar, the bottom chrome, and the area around the photo stay `#ffffff` in light and `#050404` in dark. Set it to `true` when those panels should take about 8% of `brandColor` as well.
 
 `data-ie-skin` is always `default`. There is no skin prop. [docs/theming.md](https://github.com/metin1331/react-advanced-image-editor/blob/main/packages/react-advanced-image-editor/docs/theming.md).
 

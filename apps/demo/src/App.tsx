@@ -301,8 +301,8 @@ export default function App() {
         open={open}
         presentation={presentation}
         container={presentation === "inline" ? ".stage" : undefined}
-        exportView={exportView}
         exportResultContainer=".stage"
+        exportView={exportView}
         src={file}
         preset={preset}
         theme={theme}

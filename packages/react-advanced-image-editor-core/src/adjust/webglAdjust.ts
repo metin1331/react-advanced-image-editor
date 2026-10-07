@@ -24,6 +24,7 @@ import {
 import { hasFilter, resolveFilterLook } from '../filter/filterLooks';
 import {
   BLACK_POINT_RANGE,
+  BRIGHTNESS,
   BRILLIANCE,
   DEFINITION,
   HIGHLIGHTS_EV,
@@ -176,7 +177,14 @@ void main() {
     rgb = max(rgb + u_shadows * shadowMask(luma(rgb)), vec3(0.0));
   }
 
-  rgb += u_brightness;
+  // Brightness — gamma, so +100 opens the picture without painting it white
+  // and a small negative step does not crush it. White stays white.
+  if (abs(u_brightness) > 1e-4) {
+    float gamma = u_brightness > 0.0
+      ? exp2(-u_brightness * ${glslFloat(BRIGHTNESS.positive)})
+      : exp2(-u_brightness * ${glslFloat(BRIGHTNESS.negative)});
+    rgb = pow(max(rgb, vec3(0.0)), vec3(gamma));
+  }
 
   rgb = (rgb - 0.5) * u_contrast + 0.5;
 
@@ -311,7 +319,7 @@ export type AdjustGlUniforms = Record<AdjustChannelKey, number> & {
  * / `u_tint` lookups simply resolve to `null` and are skipped in `draw`.
  */
 const CHANNEL_UNIFORM: Record<AdjustChannelKey, (v: number) => number> = {
-  brightness: (v) => v * 0.5,
+  brightness: (v) => v,
   contrast: (v) => 1 + v,
   blackPoint: (v) => v * BLACK_POINT_RANGE,
   saturation: (v) => 1 + v,

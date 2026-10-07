@@ -58,6 +58,10 @@ Runtime defaults are the parameter defaults in `ImageEditor`. Where a comment in
 | `fonts` | `ImageEditorFont[]` | — | no | Extra markup text fonts. Each item is `{ id, label, family }`. |
 | `showMediaSize` | `boolean` | `true` | no | Original pixel size in the crop chrome. |
 
+Presets: `default`, `selection`, `outside`, `profile`. All four use `interactionMode: 'pan'`. `outside` allows crop outside the image and exports PNG. `profile` locks aspect `1`, draws a circle guide, and turns the crop-shape control off. It does not set a max output size.
+
+`colors` gives you full control over individual color tokens, while `brandColor` provides a simpler way to apply your brand color across the editor. See [Theming](#theming) for the difference.
+
 ```tsx
 <ImageEditor
   open={open}

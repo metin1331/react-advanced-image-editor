@@ -1,6 +1,6 @@
 {
   "name": "react-advanced-image-editor",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "React image editor with crop, markup, filters, and export",
   "license": "MIT",
   "type": "module",

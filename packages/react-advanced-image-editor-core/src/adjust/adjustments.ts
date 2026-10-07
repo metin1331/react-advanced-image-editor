@@ -47,6 +47,23 @@ function clampUnit(v: number) {
  */
 export const BLACK_POINT_RANGE = 0.25;
 
+/**
+ * Brightness is a gamma around the picture, not a linear add.
+ * Positive opens shadows and midtones while white stays white.
+ * Negative darkens the same way, so a small step like −10 stays slight.
+ * The two exponents are stops of gamma at slider ±1.
+ */
+export const BRIGHTNESS = {
+  positive: 1,
+  negative: 0.7,
+} as const;
+
+/** Gamma applied to linear RGB for a brightness slider in [-1, 1]. */
+export function brightnessGamma(t: number) {
+  if (t >= 0) return Math.pow(2, -t * BRIGHTNESS.positive);
+  return Math.pow(2, -t * BRIGHTNESS.negative);
+}
+
 /** Highlight gain at slider ±1 and full mask, in EV stops. */
 export const HIGHLIGHTS_EV = 0.8;
 
@@ -216,7 +233,8 @@ export function applyAdjustments(
   const data = imageData.data;
 
   const exposure = Math.pow(2, a.exposure * 2);
-  const bright = a.brightness * 0.5;
+  const brightGamma = brightnessGamma(a.brightness);
+  const brightActive = Math.abs(a.brightness) > ADJUST_EPSILON;
   const contrast = 1 + a.contrast;
   const highlights = a.highlights * HIGHLIGHTS_EV;
   const highlightsActive = Math.abs(highlights) > ADJUST_EPSILON;
@@ -303,9 +321,11 @@ export function applyAdjustments(
       b = Math.max(0, b + lift);
     }
 
-    r += bright;
-    g += bright;
-    b += bright;
+    if (brightActive) {
+      r = Math.pow(Math.max(0, r), brightGamma);
+      g = Math.pow(Math.max(0, g), brightGamma);
+      b = Math.pow(Math.max(0, b), brightGamma);
+    }
 
     r = (r - 0.5) * contrast + 0.5;
     g = (g - 0.5) * contrast + 0.5;
