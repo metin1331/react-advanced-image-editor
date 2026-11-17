@@ -10,6 +10,7 @@ import {
   type AdjustState,
   type CropArea,
   type FilterState,
+  type FillState,
   type LoadedImage,
   type TransformState,
   renderToCanvas,
@@ -37,6 +38,7 @@ type Props = {
   frame: { left: number; top: number; width: number; height: number };
   aspectRatio: number | null;
   cropOutsideImage?: boolean;
+  fill?: FillState;
 };
 
 /**
@@ -114,6 +116,7 @@ export function AdjustGlLayer({
   frame,
   aspectRatio,
   cropOutsideImage = false,
+  fill,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<WebGLAdjustRenderer | null>(null);
@@ -198,6 +201,10 @@ export function AdjustGlLayer({
       (transform.perspectiveX ?? 0).toFixed(4),
       (transform.perspectiveY ?? 0).toFixed(4),
       cropOutsideImage ? 1 : 0,
+      fill?.mode ?? 'none',
+      fill?.color ?? '',
+      fill?.image ?? '',
+      fill?.blur ?? '',
     ].join('|');
 
     let geometryChanged = false;
@@ -212,7 +219,8 @@ export function AdjustGlLayer({
           fh,
           cropOutsideImage,
           bake.width,
-          bake.height
+          bake.height,
+          fill
         );
         baseKeyRef.current = key;
         geometryChanged = true;
@@ -229,7 +237,8 @@ export function AdjustGlLayer({
             fh,
             cropOutsideImage,
             fw,
-            fh
+            fh,
+            fill
           );
           baseKeyRef.current = key;
           geometryChanged = true;
@@ -286,6 +295,7 @@ export function AdjustGlLayer({
     aspectRatio,
     cropOutsideImage,
     forceVisible,
+    fill,
     bakeSize.width,
     bakeSize.height,
   ]);

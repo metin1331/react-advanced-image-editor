@@ -56,10 +56,12 @@ export {
   createDefaultFill,
   normalizeFill,
   hasFill,
+  fillBlurAmount,
+  fillBlurRadius,
   type FillMode,
   type FillState,
 } from './fill/fillState';
-export { paintFillBackground, buildBlurFillSource } from './fill/applyFill';
+export { paintFillBackground, buildBlurFillSource, ensureFillImage, getFillImage } from './fill/applyFill';
 export {
   REDACT_STYLES,
   createDefaultRedact,
@@ -90,6 +92,18 @@ export {
   DEFAULT_MARKUP_FONT_ID,
   DEFAULT_MARKUP_FONT_FAMILY,
 } from './markup/types';
+export {
+  markupPlaneFromCrop,
+  markupPlaneTransform,
+  framePointToImage,
+  imagePointToFrame,
+  stickShapeToFrame,
+  stickShapeToPhoto,
+  pointerToImagePoint,
+  migrateFrameMarkupToImage,
+  paintMarkupInPlane,
+  type MarkupPlane,
+} from './markup/imagePlane';
 export { strokeStyleFor } from './markup/strokeStyle';
 export {
   paintStickerEmoji,
@@ -230,6 +244,7 @@ export { renderToCanvas, exportImage, downscaleBlob } from './export/exportImage
 export {
   createDefaultTransform,
   createInitialSnapshot,
+  normalizeEditorSnapshot,
   createHistory,
   pushHistory,
   undoHistory,

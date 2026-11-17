@@ -5,6 +5,7 @@ import {
   type AdjustChannelKey,
   type ExportOptions,
   type FilterId,
+  type EditorSnapshot,
   type ImageSource,
   type Rotation,
 } from 'react-advanced-image-editor-core';
@@ -265,8 +266,43 @@ export interface ImageEditorProps {
   fonts?: ImageEditorFont[];
   /** Show original media pixel size in the crop tool chrome. */
   showMediaSize?: boolean;
+  /**
+   * Resize tool, its bottom bar, and exact-size export. Default `true`.
+   * `false` removes the tool and exports the crop and frame size only.
+   */
+  enableResize?: boolean;
+  /**
+   * Fill tool for transparent pixels. Default `true`.
+   * `false` removes the tool and leaves those pixels transparent.
+   */
+  enableFill?: boolean;
+  /**
+   * Edit to apply after this photo loads. Omit or pass `null` to start fresh.
+   * Applied once per open and `src`, not on later parent updates, so undo stays intact.
+   */
+  imageState?: ImageEditorState | null;
+  /**
+   * Current edit, including Resize. Fired when the edit changes so you can store it
+   * and pass it back as `imageState`. Does not include the undo stack.
+   */
+  onImageStateChange?: (state: ImageEditorState) => void;
   onExport: (blob: Blob) => void | Promise<void>;
   onCancel: () => void;
+}
+
+/**
+ * One photo's edit: crop, transform, calibrate, filter, markup, fill, redact,
+ * frame, and crop shape, plus the Resize choice. Undo history is not included.
+ */
+export interface ImageEditorState extends EditorSnapshot {
+  /** Exact output pixels. `null` or omitted uses the crop and frame size. */
+  resize?: { width: number; height: number } | null;
+  /** When `false`, width and height were set independently. Default `true`. */
+  resizeLinked?: boolean;
+  /** Fill carousel family (`white`, `black`, or a Tailwind name). */
+  fillFamily?: string;
+  /** Fill shade ruler, 0–100. 50 is the 500 stop. */
+  fillShade?: number;
 }
 
 /** @deprecated Use `ImageEditorProps`. */
@@ -457,6 +493,7 @@ export interface ImageEditorLabels extends Partial<Record<AdjustChannel, string>
     addText: string;
     addSticker: string;
     addShape: string;
+    addImage: string;
     addSignature: string;
     addLoupe: string;
     stickerEmojiTab: string;
@@ -508,7 +545,15 @@ export interface ImageEditorLabels extends Partial<Record<AdjustChannel, string>
     fill?: string;
     redact?: string;
     frame?: string;
+    resize?: string;
   };
+  resize?: Partial<{
+    width: string;
+    height: string;
+    lock: string;
+    unlock: string;
+    reset: string;
+  }>;
   frames?: Partial<Record<
     import('react-advanced-image-editor-core').FramePresetId,
     string
@@ -526,7 +571,24 @@ export interface ImageEditorLabels extends Partial<Record<AdjustChannel, string>
     solid?: string;
     edgeBlur?: string;
     color?: string;
+    image?: string;
+    choose?: string;
+    addColor?: string;
   };
+  fillColors?: Partial<{
+    original: string;
+    black: string;
+    gray: string;
+    red: string;
+    orange: string;
+    yellow: string;
+    green: string;
+    teal: string;
+    blue: string;
+    indigo: string;
+    purple: string;
+    pink: string;
+  }>;
   redact?: {
     move?: string;
     pixelate?: string;
@@ -641,6 +703,14 @@ export const defaultLabels: ImageEditorLabels = {
     fill: 'Fill',
     redact: 'Redact',
     frame: 'Frame',
+    resize: 'Resize',
+  },
+  resize: {
+    width: 'Width',
+    height: 'Height',
+    lock: 'Lock aspect ratio',
+    unlock: 'Unlock aspect ratio',
+    reset: 'Reset',
   },
   frames: {
     none: 'None',
@@ -694,9 +764,26 @@ export const defaultLabels: ImageEditorLabels = {
   },
   fillModes: {
     none: 'None',
-    solid: 'Solid',
+    solid: 'Color',
     edgeBlur: 'Blur',
     color: 'Color',
+    image: 'Image',
+    choose: 'Choose image',
+    addColor: 'Custom color',
+  },
+  fillColors: {
+    original: 'Original',
+    black: 'Black',
+    gray: 'Gray',
+    red: 'Red',
+    orange: 'Orange',
+    yellow: 'Yellow',
+    green: 'Green',
+    teal: 'Teal',
+    blue: 'Blue',
+    indigo: 'Indigo',
+    purple: 'Purple',
+    pink: 'Pink',
   },
   redact: {
     move: 'Move',

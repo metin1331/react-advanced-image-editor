@@ -1,18 +1,71 @@
 import type { FillState } from './fillState';
-import { hasFill } from './fillState';
+import { fillBlurRadius, hasFill } from './fillState';
+
+const fillImageCache = new Map<string, CanvasImageSource>();
+
+export function getFillImage(url: string): CanvasImageSource | null {
+  return fillImageCache.get(url) ?? null;
+}
+
+/** Decode a fill image so preview and export can paint it behind transparent pixels. */
+export function ensureFillImage(url: string): Promise<CanvasImageSource | null> {
+  const cached = fillImageCache.get(url);
+  if (cached) return Promise.resolve(cached);
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => {
+      fillImageCache.set(url, image);
+      resolve(image);
+    };
+    image.onerror = () => resolve(null);
+    image.src = url;
+  });
+}
+
+function drawCover(
+  ctx: CanvasRenderingContext2D,
+  image: CanvasImageSource,
+  width: number,
+  height: number
+) {
+  let sourceW = width;
+  let sourceH = height;
+  if (image instanceof HTMLImageElement) {
+    sourceW = image.naturalWidth || image.width;
+    sourceH = image.naturalHeight || image.height;
+  } else if (image instanceof HTMLCanvasElement || image instanceof ImageBitmap) {
+    sourceW = image.width;
+    sourceH = image.height;
+  } else if (image instanceof HTMLVideoElement) {
+    sourceW = image.videoWidth;
+    sourceH = image.videoHeight;
+  }
+  const sw = Math.max(1, sourceW);
+  const sh = Math.max(1, sourceH);
+  const scale = Math.max(width / sw, height / sh);
+  const dw = sw * scale;
+  const dh = sh * scale;
+  ctx.drawImage(image, (width - dw) / 2, (height - dh) / 2, dw, dh);
+}
 
 /**
- * Paint letterbox / transparent areas before the cropped image is composited.
- * Called on the output canvas prior to drawing the photo.
+ * Paint a color or image behind a photo's transparent pixels.
+ * The caller draws the photo on top of this rect.
  */
 export function paintFillBackground(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
   fill: FillState,
-  blurredSource?: CanvasImageSource | null
+  blurredSource?: CanvasImageSource | null,
+  fillImage?: CanvasImageSource | null
 ) {
   if (!hasFill(fill)) return;
+
+  if (fill.mode === 'image') {
+    if (fillImage) drawCover(ctx, fillImage, width, height);
+    return;
+  }
 
   if (fill.mode === 'solid') {
     ctx.fillStyle = fill.color;
@@ -22,7 +75,7 @@ export function paintFillBackground(
 
   if (fill.mode === 'edge-blur' && blurredSource) {
     ctx.save();
-    ctx.filter = 'blur(28px) saturate(1.15)';
+    ctx.filter = `blur(${fillBlurRadius(fill)}px) saturate(1.15)`;
     const scale = 1.08;
     const sw = width * scale;
     const sh = height * scale;

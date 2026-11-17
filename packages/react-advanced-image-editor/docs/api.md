@@ -57,6 +57,10 @@ Runtime defaults are the parameter defaults in `ImageEditor`. Where a comment in
 | `initialZoom` | `number` | `1` | no | Opening zoom relative to cover, clamped to the preset min/max. The type comment says `2.5`; the parameter default is `1`. `DEFAULT_INITIAL_CROP_ZOOM` in core is `2.5` and is not what `ImageEditor` passes. |
 | `fonts` | `ImageEditorFont[]` | — | no | Extra markup text fonts. Each item is `{ id, label, family }`. |
 | `showMediaSize` | `boolean` | `true` | no | Original pixel size in the crop chrome. |
+| `enableResize` | `boolean` | `true` | no | `false` removes the Resize tool, its fields, and exact-size export. The blob stays at the crop and frame size. |
+| `enableFill` | `boolean` | `true` | no | `false` removes the Fill tool and leaves transparent pixels transparent. |
+| `imageState` | `ImageEditorState \| null` | — | no | Edit applied once after this photo loads. Omit or `null` starts fresh. Later parent updates do not reapply it. |
+| `onImageStateChange` | `(state: ImageEditorState) => void` | — | no | Current edit, including Resize. Does not include the undo stack. |
 
 Presets: `default`, `selection`, `outside`, `profile`. All four use `interactionMode: 'pan'`. `outside` allows crop outside the image and exports PNG. `profile` locks aspect `1`, draws a circle guide, and turns the crop-shape control off. It does not set a max output size.
 
@@ -81,10 +85,13 @@ Presets: `default`, `selection`, `outside`, `profile`. All four use `interaction
 | --- | --- |
 | `onExport` | Done has encoded a `Blob`. |
 | `onCancel` | Cancel, or a click on the modal backdrop. |
+| `onImageStateChange` | The current edit changed. Crop, transform, calibrate, filter, markup, fill, redact, frame, crop shape, and Resize are included. Undo and redo are not. |
 | `onPresetChange` | A preset is chosen in the preset bar. The bar also requires this callback, the Crop tool, and more than one option. |
 | `presetPicker.onPositionChange` | Never. Deprecated no-op. |
 
-There is no `onChange` for crop, filter, or markup. Those stay inside the component until export.
+`imageState` is that same object. Pass it on the next open to restore the edit. The component reads it once per open and `src`, after the photo loads, so storing the callback result does not reset undo. Clear it when `src` changes. Ctrl+V pastes a different photo for the open session and does not update `onImageStateChange`.
+
+`ImageEditorState` adds `resize` (`{ width, height } | null`), `resizeLinked`, `fillFamily`, and `fillShade` on top of the edit snapshot. Unknown or partial fields are repaired when the edit is applied.
 
 ## Presets
 
@@ -176,7 +183,7 @@ CSS variables use the same names with an `--ie-mode-` prefix, for example `--ie-
 
 `labels.tools.finetune` is deprecated. Use `labels.tools.calibrate`.
 
-`labels.tools.fill` and `labels.fillModes` are merged, but no Fill sidebar tool is rendered.
+`labels.tools.fill` names the Fill tool. `labels.fillModes` covers `solid` (Color), `image`, `edgeBlur`, `color`, and `addColor`. The color carousel uses Tailwind family names, with flat white and black immediately left of red. Those two have no shade ruler. Shade 500 is the center of the 0–100 ruler; other stops blend in OKLCH. Choosing another color returns the ruler to that center. `none` is the state before the tool is opened. `labels.tools.resize` names Resize. `labels.resize` covers `width`, `height`, `lock`, `unlock`, and `reset`.
 
 ## Data attributes
 
@@ -194,7 +201,7 @@ Set on the root or slots by `ImageEditor`:
 | `data-ie-brand-bg` | `true` only when `brandColor` is non-empty and `brandColorAffectsBackground` is true. |
 | `data-ie-part` | Slot name: `backdrop`, `panel`, `sidebar`, `sidebar-logo`, `sidebar-fullscreen`, `main`, `topbar`, `button`, `done-button`, `workspace`, `loading`, `sub-toolbar`, `viewport-area`, `mode-label`, `bottom-bar`, `media-size`. |
 | `data-ie-action` | `cancel`, `undo`, `redo`, `reset` on those buttons. |
-| `data-ie-tool` | `crop-shape`, `crop`, `calibrate`, `filter`, `annotate`, `redact`, `frame` on bottom bars. |
+| `data-ie-tool` | `crop-shape`, `crop`, `calibrate`, `filter`, `annotate`, `fill`, `redact`, `frame`, `resize` on bottom bars. `fill` is absent when `enableFill` is `false`. `resize` is absent when `enableResize` is `false`. |
 | `data-ie-active` | `true` on the fullscreen control while fullscreen is on, and on active sub-toolbar buttons. |
 | `data-ie-inline-slot` | Wrapper used for inline presentation. |
 

@@ -1,15 +1,17 @@
 import type {
   AdjustState,
   CropArea,
+  CropShapeSnapshot,
   EditorSnapshot,
   FilterState,
   MarkupState,
+  Rotation,
   TransformState,
 } from '../types';
 import { createDefaultCrop } from '../crop/cropMath';
-import { createDefaultAdjust } from '../adjust/adjustments';
-import { createDefaultFilter } from '../filter/filterLooks';
-import { cloneMarkup, createDefaultMarkup } from '../markup/types';
+import { createDefaultAdjust, normalizeAdjust } from '../adjust/adjustments';
+import { createDefaultFilter, normalizeFilter } from '../filter/filterLooks';
+import { cloneMarkup, createDefaultMarkup, normalizeMarkup } from '../markup/types';
 import { createDefaultFill, normalizeFill, type FillState } from '../fill/fillState';
 import { cloneRedact, createDefaultRedact, normalizeRedact, type RedactState } from '../redact/redactState';
 import { createDefaultFrame, normalizeFrame, type FrameState } from '../frame/frameState';
@@ -26,6 +28,78 @@ export function createDefaultTransform(): TransformState {
 }
 
 export { createDefaultAdjust, createDefaultFilter, createDefaultMarkup };
+
+const ROTATIONS: readonly Rotation[] = [0, 90, 180, 270];
+
+function finite(value: unknown, fallback: number) {
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function normalizeCrop(raw: unknown, fallback: CropArea): CropArea {
+  if (!raw || typeof raw !== 'object') return { ...fallback };
+  const crop = raw as Partial<CropArea>;
+  return {
+    x: finite(crop.x, fallback.x),
+    y: finite(crop.y, fallback.y),
+    zoom: finite(crop.zoom, fallback.zoom),
+  };
+}
+
+function normalizeTransform(raw: unknown): TransformState {
+  const base = createDefaultTransform();
+  if (!raw || typeof raw !== 'object') return base;
+  const t = raw as Partial<TransformState>;
+  const rotation = finite(t.rotation, 0);
+  const perspectiveX = finite(t.perspectiveX, 0);
+  const perspectiveY = finite(t.perspectiveY, 0);
+  return {
+    rotation: (ROTATIONS as readonly number[]).includes(rotation) ? (rotation as Rotation) : 0,
+    angle: finite(t.angle, 0),
+    flipX: Boolean(t.flipX),
+    flipY: Boolean(t.flipY),
+    perspectiveX: Math.min(1, Math.max(-1, perspectiveX)),
+    perspectiveY: Math.min(1, Math.max(-1, perspectiveY)),
+  };
+}
+
+function normalizeCropShape(raw: unknown): CropShapeSnapshot | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const shape = raw as Partial<CropShapeSnapshot>;
+  if (typeof shape.shape !== 'string' || !shape.shape) return undefined;
+  const orientation =
+    shape.orientation === 'vertical' || shape.orientation === 'horizontal'
+      ? shape.orientation
+      : null;
+  const aspect = shape.aspect == null ? null : finite(shape.aspect, NaN);
+  return {
+    shape: shape.shape,
+    orientation,
+    aspect: aspect != null && Number.isFinite(aspect) && aspect > 0 ? aspect : null,
+  };
+}
+
+/**
+ * Repair a saved edit so a partial or corrupt object cannot poison history.
+ * Unknown fields are dropped. Missing tools fall back to a fresh edit.
+ */
+export function normalizeEditorSnapshot(raw: unknown): EditorSnapshot {
+  const base = createInitialSnapshot();
+  if (!raw || typeof raw !== 'object') return base;
+  const input = raw as Partial<EditorSnapshot>;
+  const cropShape = normalizeCropShape(input.cropShape);
+  return {
+    crop: normalizeCrop(input.crop, base.crop),
+    transform: normalizeTransform(input.transform),
+    adjust: normalizeAdjust(input.adjust ?? {}),
+    filter: normalizeFilter(input.filter),
+    markup: normalizeMarkup(input.markup),
+    fill: normalizeFill(input.fill),
+    redact: normalizeRedact(input.redact),
+    frame: normalizeFrame(input.frame),
+    ...(cropShape ? { cropShape } : {}),
+  };
+}
 
 export function createInitialSnapshot(options?: { zoom?: number }): EditorSnapshot {
   return {

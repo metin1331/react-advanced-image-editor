@@ -1639,7 +1639,10 @@
   > .ie-mode-strip,
 [data-ie-part="chrome-slot"][data-ie-fixed-bottom="true"]
   [data-ie-part="bottom-bar"]
-  > .ie-filter-strip {
+  > .ie-filter-strip,
+[data-ie-part="chrome-slot"][data-ie-fixed-bottom="true"]
+  [data-ie-part="bottom-bar"]
+  > .ie-fill-color-row {
   flex: 0 0 var(--ie-bottom-bar-strip);
   height: var(--ie-bottom-bar-strip);
   min-height: var(--ie-bottom-bar-strip);
@@ -2103,12 +2106,22 @@
     var(--ie-crop-fade-reveal-ease) var(--ie-crop-fade-reveal-delay);
 }
 
+.ie-mode-label-pill[data-ie-fill-label="true"] {
+  bottom: 110px;
+}
+
 .ie-mode-label-pill[data-ie-filter-label="true"],
+.ie-mode-label-pill[data-ie-fill-label="true"],
 [data-ie-mode-presence][data-ie-open="true"].ie-mode-label-pill[data-ie-filter-label="true"],
+[data-ie-mode-presence][data-ie-open="true"].ie-mode-label-pill[data-ie-fill-label="true"],
 [data-ie-root][data-ie-crop-faded="true"]
   .ie-mode-label-pill[data-ie-filter-label="true"],
 [data-ie-root][data-ie-crop-faded="true"]
-  [data-ie-mode-presence][data-ie-open="true"].ie-mode-label-pill[data-ie-filter-label="true"] {
+  .ie-mode-label-pill[data-ie-fill-label="true"],
+[data-ie-root][data-ie-crop-faded="true"]
+  [data-ie-mode-presence][data-ie-open="true"].ie-mode-label-pill[data-ie-filter-label="true"],
+[data-ie-root][data-ie-crop-faded="true"]
+  [data-ie-mode-presence][data-ie-open="true"].ie-mode-label-pill[data-ie-fill-label="true"] {
   opacity: 1;
   -webkit-transition: none;
   transition: none;
@@ -2962,7 +2975,8 @@
   --ie-filter-frame: #ffffff;
 }
 
-.ie-filter-strip {
+.ie-filter-strip,
+.ie-fill-color-strip {
   position: relative;
   display: block;
   width: 100%;
@@ -2977,11 +2991,13 @@
   animation: ie-filter-strip-in 360ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.ie-filter-strip[data-ie-dragging="true"] {
+.ie-filter-strip[data-ie-dragging="true"],
+.ie-fill-color-strip[data-ie-dragging="true"] {
   cursor: grabbing;
 }
 
-.ie-filter-track {
+.ie-filter-track,
+.ie-fill-color-track {
   position: relative;
   z-index: 1;
   display: flex;
@@ -3003,11 +3019,12 @@
   }
 }
 
-.ie-filter-select {
+.ie-filter-select,
+.ie-fill-color-select {
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 2;
+  z-index: 999;
   pointer-events: none;
   opacity: 0;
   box-sizing: border-box;
@@ -3023,7 +3040,8 @@
   will-change: transform;
 }
 
-.ie-filter-item {
+.ie-filter-item,
+.ie-fill-color-item {
   position: relative;
   z-index: 1;
   flex: 0 0 auto;
@@ -3047,7 +3065,8 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.ie-filter-thumb {
+.ie-filter-thumb,
+.ie-fill-color-thumb {
   position: relative;
   display: block;
   width: 100%;
@@ -3095,7 +3114,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ie-filter-strip {
+  .ie-filter-strip,
+  .ie-fill-color-strip {
     animation: none;
   }
 
@@ -3256,7 +3276,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2;
+  z-index: 8;
   pointer-events: none;
 }
 
@@ -3946,6 +3966,10 @@
 
 /* —— Shape contextual badge (Markup) —— */
 
+.ie-markup-upright > * {
+  pointer-events: auto;
+}
+
 .ie-shape-badge {
   position: absolute;
   z-index: 8;
@@ -4434,6 +4458,171 @@
 
 .ie-frame-strip::-webkit-scrollbar {
   display: none;
+}
+
+.ie-resize-strip {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 440px;
+  padding: 2px 16px 0;
+  box-sizing: border-box;
+}
+
+.ie-resize-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 88px;
+  max-width: 120px;
+  min-width: 0;
+  color: var(--ie-text-muted);
+  font-size: 11px;
+}
+
+.ie-resize-field input {
+  width: 100%;
+  height: 36px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 8px;
+  border: 1px solid var(--ie-border);
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--ie-text) 4%, transparent);
+  color: var(--ie-text);
+  font: inherit;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  outline: none;
+}
+
+.ie-resize-field input:focus {
+  border-color: var(--ie-accent);
+}
+
+.ie-resize-link,
+.ie-resize-reset {
+  appearance: none;
+  height: 36px;
+  margin: 0;
+  border-radius: 10px;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ie-resize-link {
+  flex: 0 0 36px;
+  width: 36px;
+  padding: 0;
+  border: 1px solid var(--ie-border);
+  background: transparent;
+  color: var(--ie-text-muted);
+  display: grid;
+  place-items: center;
+}
+
+.ie-resize-link[data-ie-active="true"] {
+  color: var(--ie-accent);
+  background: var(--ie-accent-soft);
+  border-color: transparent;
+}
+
+.ie-resize-reset {
+  flex: 0 0 auto;
+  padding: 0 12px;
+  border: none;
+  background: transparent;
+  color: var(--ie-text);
+  font-size: 13px;
+}
+
+.ie-resize-reset:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+[data-ie-part="bottom-bar"][data-ie-tool="fill"] {
+  --ie-filter-thumb: 46px;
+  --ie-filter-item-w: 46px;
+  --ie-filter-gap: 2px;
+  --ie-filter-radius: 8px;
+  --ie-filter-frame-radius: 6px;
+  --ie-filter-frame: #ffffff;
+}
+
+.ie-fill-color-row {
+  position: relative;
+  width: 100%;
+  max-width: min(100%, 560px);
+  margin: 0 auto;
+}
+
+.ie-fill-color-strip {
+  height: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+.ie-fill-color-add {
+  position: relative;
+  z-index: 3;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--ie-filter-item-w, 46px);
+  height: var(--ie-filter-thumb, 46px);
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  color: var(--ie-text);
+  cursor: pointer;
+  pointer-events: auto;
+  background-color: var(--ie-bg);
+  background-image:
+    linear-gradient(45deg, color-mix(in oklab, var(--ie-text) 18%, var(--ie-bg)) 25%, transparent 25%),
+    linear-gradient(-45deg, color-mix(in oklab, var(--ie-text) 18%, var(--ie-bg)) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, color-mix(in oklab, var(--ie-text) 18%, var(--ie-bg)) 75%),
+    linear-gradient(-45deg, transparent 75%, color-mix(in oklab, var(--ie-text) 18%, var(--ie-bg)) 75%);
+  background-size: 8px 8px;
+  background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+}
+
+.ie-fill-color-add svg {
+  position: relative;
+  z-index: 1;
+  width: 22px;
+  height: 22px;
+}
+
+/* White and black have no shade ruler. This holds the same 46px band. */
+.ie-fill-ruler-spacer {
+  flex: 0 0 var(--ie-bottom-bar-ruler);
+  width: 100%;
+  height: var(--ie-bottom-bar-ruler);
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.ie-fill-blur {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 360px;
+  height: var(--ie-bottom-bar-strip, 62px);
+  margin: 0 auto;
+  padding: 0 8px;
+  box-sizing: border-box;
+}
+
+.ie-fill-blur .ie-redact-slider {
+  flex: 1 1 auto;
+  width: 100%;
 }
 
 .ie-frame-item {
@@ -5119,15 +5308,8 @@
 
 .ie-fill-backdrop {
   position: absolute;
-  inset: 0;
-  z-index: 1;
+  z-index: 0;
   pointer-events: none;
-}
-
-.ie-fill-backdrop[data-ie-fill-mode="edge-blur"] {
-  backdrop-filter: blur(24px) saturate(1.1);
-  -webkit-backdrop-filter: blur(24px) saturate(1.1);
-  background: rgba(0, 0, 0, 0.12);
 }
 
 /* —— Redact —— */

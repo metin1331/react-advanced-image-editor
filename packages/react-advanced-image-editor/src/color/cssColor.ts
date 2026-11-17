@@ -54,6 +54,23 @@ export function toHex6(c: Rgba) {
   return `#${hex2(c.r)}${hex2(c.g)}${hex2(c.b)}`;
 }
 
+/** Hex stays as written. Other CSS colors (including OKLCH) become `#rrggbb`. */
+export function cssColorToHex(color: string) {
+  const raw = color.trim();
+  if (/^#([0-9a-f]{3,8})$/i.test(raw)) return raw;
+  if (typeof document === "undefined") return "#ffffff";
+  const canvas = document.createElement("canvas");
+  canvas.width = 1;
+  canvas.height = 1;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return "#ffffff";
+  ctx.fillStyle = "#000000";
+  ctx.fillStyle = raw;
+  ctx.fillRect(0, 0, 1, 1);
+  const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+  return toHex6(rgb(r, g, b));
+}
+
 /** `#RRGGBB` when opaque so existing preset compares keep working. */
 export function toCssColor(c: Rgba) {
   if (c.a >= 0.995) return toHex6(c);

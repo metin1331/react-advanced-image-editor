@@ -8,6 +8,7 @@ import {
   type ImageEditorLocale,
   type ImageEditorPresentation,
   type ImageEditorPreset,
+  type ImageEditorState,
 } from "react-advanced-image-editor";
 import "react-advanced-image-editor/styles.css";
 import { siteCopy } from "./i18n/site";
@@ -104,8 +105,11 @@ export default function App() {
     setOpenMenu((current) => (current === id ? null : id));
   };
 
+  const [imageState, setImageState] = useState<ImageEditorState | null>(null);
+
   const onPick = useCallback((next: File | null) => {
     setFile(next);
+    setImageState(null);
     if (next) setOpen(true);
   }, []);
 
@@ -326,6 +330,8 @@ export default function App() {
         //   accentSoft: 'oklch(32% 0.10 265)',
         // }}
         locale={locale}
+        imageState={imageState}
+        onImageStateChange={setImageState}
         title="Edit photo"
         onPresetChange={setPreset}
         presetPicker={{

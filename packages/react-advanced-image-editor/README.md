@@ -12,21 +12,22 @@ Live demo: [react-advanced-image-editor.vercel.app](https://react-advanced-image
 
 ![demo](https://github.com/metin1331/react-advanced-image-editor/raw/main/packages/react-advanced-image-editor/demo.gif)
 
-![demo mobile](https://github.com/metin1331/react-advanced-image-editor/raw/main/packages/react-advanced-image-editor/demo-mobile.jpeg)
+<img src="https://github.com/metin1331/react-advanced-image-editor/raw/main/packages/react-advanced-image-editor/demo-mobile.jpeg" alt="demo mobile" width="320" />
 
 ## Features
 
 - Crop with pan, handles, aspect ratio, guides, rotation, scale, and perspective
 - Calibrate (14 adjust channels, WebGL preview)
 - Filters: original, vivid, dramatic, mono, and the warm/cool variants in `FILTER_IDS`
-- Markup: pen, marker, pencil, eraser, lasso, ruler, text, shapes, stickers, signature
+- Markup: pen, marker, pencil, eraser, lasso, ruler, text, shapes, stickers, signature. These stick to the photo and rotate with it. A selected shape can be stuck to the crop frame from its badge
+- Fill transparent pixels with a color, an image, or an adjustable blur. The tool opens on Color. `enableFill={false}` removes it and leaves those pixels transparent
 - Redact (`pixelate`, `blur`, `solid`) and frame presets
+- Resize to an exact output width and height. `enableResize={false}` removes the tool and skips that scale on export
+- Restore an edit on the next open with `imageState` and `onImageStateChange`
 - Undo, redo, reset
 - JPEG, PNG, or WebP export, with optional `maxWidth` / `maxHeight`
 - Multilingual UI. Pass `labels` with your own strings and the editor uses that language
 - Modal (portaled to `document.body`) or inline in a host element
-
-There is no Fill tool in the sidebar. Fill APIs exist on `react-advanced-image-editor-core` only.
 
 ## Install
 
@@ -156,6 +157,10 @@ Every `ImageEditor` prop. Defaults are the ones in the component, not older comm
 | `initialZoom` | `number`. Opening zoom relative to cover, clamped to the preset min and max. | no | `1` |
 | `fonts` | `{ id: string; label: string; family: string }[]`. Extra markup text fonts. | no | — |
 | `showMediaSize` | `boolean`. Original pixel size in the crop chrome. | no | `true` |
+| `enableResize` | `boolean`. `false` removes the Resize tool, its fields, and any exact-size export. The blob stays at the crop and frame size. | no | `true` |
+| `enableFill` | `boolean`. `false` removes the Fill tool and leaves transparent pixels transparent. | no | `true` |
+| `imageState` | `ImageEditorState \| null`. Applied once after this photo loads. | no | — |
+| `onImageStateChange` | `(state: ImageEditorState) => void`. Current edit, including Resize. Not the undo stack. | no | — |
 
 Presets: `default`, `selection`, `outside`, `profile`. All four use `interactionMode: 'pan'`. `outside` allows crop outside the image and exports PNG. `profile` locks aspect `1`, draws a circle guide, and turns the crop-shape control off. It does not set a max output size.
 

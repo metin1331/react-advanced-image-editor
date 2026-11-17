@@ -7,6 +7,8 @@ export type MarkupShapeBadgeLabels = {
   border: string;
   opacity: string;
   duplicate: string;
+  stickToFrame: string;
+  stickToPhoto: string;
   trash: string;
   noFill: string;
   noStroke: string;
@@ -18,6 +20,8 @@ export const defaultShapeBadgeLabels: MarkupShapeBadgeLabels = {
   border: "Border",
   opacity: "Opacity",
   duplicate: "Duplicate",
+  stickToFrame: "Stick to frame",
+  stickToPhoto: "Stick to photo",
   trash: "Delete",
   noFill: "No Fill",
   noStroke: "No Stroke",
@@ -34,6 +38,7 @@ export type MarkupShapeBadgeProps = {
   onStrokeChange: (stroke: string | null) => void;
   onOpacityChange: (opacity: number, commit: boolean) => void;
   onDuplicate: () => void;
+  onToggleStick: () => void;
   onDelete: () => void;
   /** Clear shape selection when tapping outside the badge (bar-only state). */
   onDismissSelection?: () => void;
@@ -56,6 +61,7 @@ export function MarkupShapeBadge({
   onStrokeChange,
   onOpacityChange,
   onDuplicate,
+  onToggleStick,
   onDelete,
   onDismissSelection,
 }: MarkupShapeBadgeProps) {
@@ -77,12 +83,16 @@ export function MarkupShapeBadge({
       const t = e.target as Node;
       if (rootRef.current?.contains(t)) return;
       // Canvas lives under this badge — don't steal move / resize.
-      if ((e.target as HTMLElement | null)?.closest?.('[data-ie-part="markup-layer"]')) {
+      if (
+        (e.target as HTMLElement | null)?.closest?.(
+          '[data-ie-part="markup-layer"]',
+        )
+      ) {
         return;
       }
 
-      if (panel !== 'none') {
-        setPanel('none');
+      if (panel !== "none") {
+        setPanel("none");
         e.preventDefault();
         e.stopPropagation();
         return;
@@ -91,8 +101,8 @@ export function MarkupShapeBadge({
       e.preventDefault();
       e.stopPropagation();
     };
-    document.addEventListener('pointerdown', onDoc, true);
-    return () => document.removeEventListener('pointerdown', onDoc, true);
+    document.addEventListener("pointerdown", onDoc, true);
+    return () => document.removeEventListener("pointerdown", onDoc, true);
   }, [panel, onDismissSelection]);
 
   // Prefer secondary popup above the bar; flip below if clipped by adjust-view top.
@@ -200,6 +210,20 @@ export function MarkupShapeBadge({
           onClick={onDuplicate}
         >
           <DupIcon />
+        </button>
+        <button
+          type="button"
+          className="ie-shape-badge-btn"
+          aria-pressed={shape.stick === "frame"}
+          aria-label={
+            shape.stick === "frame" ? labels.stickToPhoto : labels.stickToFrame
+          }
+          title={
+            shape.stick === "frame" ? labels.stickToPhoto : labels.stickToFrame
+          }
+          onClick={onToggleStick}
+        >
+          {shape.stick === "frame" ? <StickOpenIcon /> : <StickClosedIcon />}
         </button>
         <button
           type="button"
@@ -352,6 +376,51 @@ function OpacityIcon() {
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
       <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.7" />
       <path d="M12 3.5a8.5 8.5 0 0 1 0 17V3.5Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+function StickClosedIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M21 8L18.74 5.74A9.75 9.75 0 0 0 12 3C11 3 10.03 3.16 9.13 3.47" />
+      <path d="M8 16H3v5" />
+      <path d="M3 12C3 9.51 4 7.26 5.64 5.64" />
+      <path d="m3 16 2.26 2.26A9.75 9.75 0 0 0 12 21c2.49 0 4.74-1 6.36-2.64" />
+      <path d="M21 12c0 1-.16 1.97-.47 2.87" />
+      <path d="M21 3v5h-5" />
+      <path d="M22 22 2 2" />
+    </svg>
+  );
+}
+
+function StickOpenIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+      <path d="M21 3v5h-5" />
+      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+      <path d="M8 16H3v5" />
     </svg>
   );
 }

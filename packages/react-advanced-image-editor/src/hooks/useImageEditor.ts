@@ -20,6 +20,8 @@ import {
   patchFrame,
   redoHistory,
   resetHistory,
+  createHistory,
+  normalizeEditorSnapshot,
   commitReset,
   undoHistory,
   updateAdjust,
@@ -343,6 +345,10 @@ export function useImageEditor(
     null
   );
 
+  const replaceSnapshot = useCallback((snapshot: unknown) => {
+    setHistory(createHistory(normalizeEditorSnapshot(snapshot)));
+  }, []);
+
   const exportEdited = useCallback(
     async (aspectRatio: number | null, options?: ExportOptions) => {
       const state = getEditorState();
@@ -390,6 +396,7 @@ export function useImageEditor(
     undo,
     redo,
     reset,
+    replaceSnapshot,
     rotate,
     flip,
     canUndo: canUndo(history),

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   createDefaultRuler,
   hitTestObject,
@@ -7,6 +7,10 @@ import {
   pointInPolygon,
   projectOntoAngle,
   recognizeShape,
+  pointerToImagePoint,
+  imagePointToFrame,
+  stickShapeToFrame,
+  stickShapeToPhoto,
   renderMarkup,
   resolveMarkupFontFamily,
   shapeFromDrag,
@@ -14,6 +18,7 @@ import {
   type EraserMode,
   type MarkupDrawTool,
   type MarkupObject,
+  type MarkupPlane,
   type MarkupPoint,
   type MarkupRuler,
   type MarkupShape,
@@ -75,6 +80,31 @@ export type MarkupLayerProps = {
   onRulerChange: (ruler: MarkupRuler) => void;
   onSelectedIdsChange: (ids: string[]) => void;
   onCommit: (next: MarkupState) => void;
+  /** Photo box inside the crop frame. Markup is drawn in this box and transformed with the photo. */
+  plane?: {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+    transform: string;
+    angleDeg: number;
+    flipX: boolean;
+    flipY: boolean;
+    perspectiveX: number;
+    perspectiveY: number;
+  } | null;
+  /** New objects land here, in photo-box coordinates (the visible crop center). */
+  placementCenter?: { x: number; y: number } | null;
+  /** Crop frame CSS size, so a new shape stays the same size on screen. */
+  framePx?: { width: number; height: number } | null;
+  /**
+   * `image` sticks drawings to the photo. `frame` sticks them to the crop window.
+   */
+  coordinateSpace?: 'image' | 'frame';
+  /** Crop geometry used to move a shape between the photo and the frame. */
+  stickPlane?: MarkupPlane | null;
+  /** Live object list while a drag is in progress, so the other layer can follow. */
+  onLiveObjects?: (objects: MarkupObject[] | null) => void;
   onChromeHoldFadeBegin?: (
     focus: string | null,
     stillActive?: () => boolean,
@@ -86,15 +116,50 @@ function newId() {
   return `mk_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function eventPoint(el: HTMLElement, e: PointerEvent): MarkupPoint {
+function eventPoint(
+  el: HTMLElement,
+  e: PointerEvent,
+  plane: MarkupLayerProps['plane']
+): MarkupPoint {
+  const pressure = e.pressure > 0 ? e.pressure : 0.5;
+  if (plane && plane.width > 1 && plane.height > 1) {
+    const p = pointerToImagePoint(el, e.clientX, e.clientY, plane);
+    return { ...p, p: pressure };
+  }
   const rect = el.getBoundingClientRect();
   const w = Math.max(1, rect.width);
   const h = Math.max(1, rect.height);
   return {
     x: Math.min(1, Math.max(0, (e.clientX - rect.left) / w)),
     y: Math.min(1, Math.max(0, (e.clientY - rect.top) / h)),
-    p: e.pressure > 0 ? e.pressure : 0.5,
+    p: pressure,
   };
+}
+
+function Upright({
+  angle,
+  origin,
+  children,
+}: {
+  angle: number;
+  origin: { x: number; y: number };
+  children: ReactNode;
+}) {
+  if (!angle) return <>{children}</>;
+  return (
+    <div
+      className="ie-markup-upright"
+      style={{
+        position: 'absolute',
+        inset: 0,
+        transform: `rotate(${-angle}deg)`,
+        transformOrigin: `${origin.x * 100}% ${origin.y * 100}%`,
+        pointerEvents: 'none',
+      }}
+    >
+      {children}
+    </div>
+  );
 }
 
 function constrainPoint(pt: MarkupPoint, ruler: MarkupRuler): MarkupPoint {
@@ -289,7 +354,13 @@ export function MarkupLayer({
   inspect = null,
   onRulerChange,
   onSelectedIdsChange,
-  onCommit,
+  onCommit: emitMarkup,
+  plane = null,
+  placementCenter = null,
+  framePx = null,
+  coordinateSpace = 'image',
+  stickPlane = null,
+  onLiveObjects,
   onChromeHoldFadeBegin,
   onChromeHoldFadeEnd,
 }: MarkupLayerProps) {
@@ -299,6 +370,28 @@ export function MarkupLayer({
   inspectRef.current = inspect;
   const photoSourceRef = useRef(photoSource);
   photoSourceRef.current = photoSource;
+  const planeRef = useRef(plane);
+  planeRef.current = plane;
+  const placementRef = useRef(placementCenter);
+  placementRef.current = placementCenter;
+  const framePxRef = useRef(framePx);
+  framePxRef.current = framePx;
+  const stickPlaneRef = useRef(stickPlane);
+  stickPlaneRef.current = stickPlane;
+  const onLiveObjectsRef = useRef(onLiveObjects);
+  onLiveObjectsRef.current = onLiveObjects;
+  const gestureFrame = useRef(false);
+  const consumedPlaceKey = useRef(0);
+  const onCommit = useCallback(
+    (next: MarkupState) => {
+      emitMarkup(
+        coordinateSpace === 'frame'
+          ? { objects: next.objects }
+          : { objects: next.objects, space: 'image' },
+      );
+    },
+    [coordinateSpace, emitMarkup],
+  );
   const spaceHeld = useRef(false);
   const inspectMode = useRef<'pan' | 'pinch' | null>(null);
   const clientPos = useRef(new Map<number, { x: number; y: number }>());
@@ -364,13 +457,13 @@ export function MarkupLayer({
   const beginTextEditRef = useRef<(id: string) => void>(() => {});
   /** Live DOM bounds of the text editor (normalized) — used for handles while editing. */
   const editingBoundsRef = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
-  const lastTextTap = useRef<{ id: string; t: number } | null>(null);
+  /** A tap edits text only when that object was already selected. */
+  const textTapEdits = useRef(false);
   const lastPlacedRef = useRef<{
     text?: { x: number; y: number };
     shape?: { x: number; y: number };
     loupe?: { x: number; y: number };
   }>({});
-  const TEXT_DOUBLE_TAP_MS = 380;
   /** Live opacity while dragging the badge slider (canvas via scratch + badge via merge). */
   const [liveOpacity, setLiveOpacity] = useState<{ id: string; opacity: number } | null>(null);
   /** Hide shape badge/popups immediately when transforming the selection. */
@@ -385,10 +478,11 @@ export function MarkupLayer({
 
   const nextPlacement = useCallback((kind: 'text' | 'shape' | 'loupe', objW: number, objH: number) => {
     const last = lastPlacedRef.current[kind];
+    const anchor = placementRef.current ?? { x: 0.5, y: 0.5 };
     if (!last) {
       return {
-        x: Math.min(0.98 - objW, Math.max(0.02, 0.5 - objW / 2)),
-        y: Math.min(0.98 - objH, Math.max(0.02, 0.5 - objH / 2)),
+        x: Math.min(0.98 - objW, Math.max(0.02, anchor.x - objW / 2)),
+        y: Math.min(0.98 - objH, Math.max(0.02, anchor.y - objH / 2)),
       };
     }
     return {
@@ -398,7 +492,9 @@ export function MarkupLayer({
   }, []);
 
   const insertTextAtPlacement = useCallback(() => {
-    const w = DEFAULT_TEXT_W;
+    const imageW = Math.max(1, rootRef.current?.clientWidth ?? framePxRef.current?.width ?? 1);
+    const frameW = framePxRef.current?.width ?? imageW;
+    const w = DEFAULT_TEXT_W * (frameW / imageW);
     const fontSize = 16 / Math.max(1, frameShortPx);
     const h = fontSize * 1.25;
     const { x, y } = nextPlacement('text', w, h);
@@ -417,13 +513,12 @@ export function MarkupLayer({
     onCommit({ objects: [...markupRef.current.objects, textObj] });
     onSelectedIdsChange([id]);
     lastPlacedRef.current.text = { x, y };
-    lastTextTap.current = { id, t: performance.now() };
-    beginTextEditRef.current(id);
   }, [color, frameShortPx, nextPlacement, onCommit, onSelectedIdsChange, textAlign]);
 
   const insertShapeAtPlacement = useCallback(() => {
     const { width: fw, height: fh } = getFrameSize();
-    const short = Math.min(fw, fh);
+    const frame = framePxRef.current;
+    const short = frame ? Math.min(frame.width, frame.height) : Math.min(fw, fh);
     const sizePx = DEFAULT_SHAPE_SHORT * short;
     let w = sizePx / Math.max(1, fw);
     let h = sizePx / Math.max(1, fh);
@@ -467,10 +562,12 @@ export function MarkupLayer({
 
   useEffect(() => {
     if (!placeRequest?.key || !active) return;
+    if (consumedPlaceKey.current === placeRequest.key) return;
+    consumedPlaceKey.current = placeRequest.key;
     if (placeRequest.kind === 'text') insertTextAtPlacement();
     else if (placeRequest.kind === 'shape') insertShapeAtPlacement();
     else insertLoupeAtPlacement();
-    // Only react to a new place request key — not to color/tool identity churn.
+    // Only a new key inserts. Re-activating the layer must not repeat it.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
   }, [placeRequest?.key, active]);
 
@@ -536,17 +633,13 @@ export function MarkupLayer({
       editingBoundsRef.current = null;
       return;
     }
-    const rr = root.getBoundingClientRect();
-    const tr = ta.getBoundingClientRect();
-    if (rr.width < 1 || rr.height < 1) {
-      editingBoundsRef.current = null;
-      return;
-    }
+    const rw = Math.max(1, root.clientWidth);
+    const rh = Math.max(1, root.clientHeight);
     editingBoundsRef.current = {
-      x: (tr.left - rr.left) / rr.width,
-      y: (tr.top - rr.top) / rr.height,
-      w: tr.width / rr.width,
-      h: tr.height / rr.height,
+      x: ta.offsetLeft / rw,
+      y: ta.offsetTop / rh,
+      w: ta.offsetWidth / rw,
+      h: ta.offsetHeight / rh,
     };
   }, []);
 
@@ -840,12 +933,12 @@ export function MarkupLayer({
       if (!obj) continue;
 
       if (obj.kind === 'shape') {
-        const css = rootRef.current?.getBoundingClientRect();
+        const root = rootRef.current;
         const handle = hitShapeHandle(
           pt,
           obj,
-          css && css.width > 0
-            ? { width: css.width, height: css.height }
+          root && root.clientWidth > 0
+            ? { width: root.clientWidth, height: root.clientHeight }
             : frameSize
         );
         if (handle) {
@@ -956,7 +1049,11 @@ export function MarkupLayer({
     if (liveStroke.current) extras.push(liveStroke.current);
     if (liveShape.current) extras.push(liveShape.current);
     const editId = editingIdRef.current;
-    const paintObjects = [...base.objects, ...extras].filter((o) => o.id !== editId);
+    const paintObjects = [...base.objects, ...extras].filter((o) => {
+      if (o.id === editId) return false;
+      const onFrame = o.kind === 'shape' && o.stick === 'frame';
+      return coordinateSpace === 'frame' ? onFrame : !onFrame;
+    });
     renderMarkup(
       ctx,
       { objects: paintObjects },
@@ -979,7 +1076,7 @@ export function MarkupLayer({
       ctx.restore();
     }
 
-    paintSelection(ctx, selectedRef.current, base.objects, canvas.width, canvas.height, {
+    paintSelection(ctx, selectedRef.current, paintObjects, canvas.width, canvas.height, {
       width: canvas.width,
       height: canvas.height,
     });
@@ -1107,7 +1204,17 @@ export function MarkupLayer({
     const root = rootRef.current;
     if (!root || !active) return;
 
+    const framePoint = (pt: MarkupPoint): MarkupPoint => {
+      const plane = stickPlaneRef.current;
+      if (!plane) return pt;
+      const next = imagePointToFrame(pt.x, pt.y, plane);
+      return { x: next.x, y: next.y, p: pt.p };
+    };
+    const pointOn = (obj: MarkupObject | undefined, pt: MarkupPoint) =>
+      obj?.kind === 'shape' && obj.stick === 'frame' ? framePoint(pt) : pt;
+
     const onPointerDown = (e: PointerEvent) => {
+      textTapEdits.current = false;
       // Sticker context menu owns its own clicks — never capture those.
       if ((e.target as HTMLElement | null)?.closest?.('.ie-sticker-context-menu')) {
         return;
@@ -1127,7 +1234,12 @@ export function MarkupLayer({
         return;
       }
 
-      const pt = eventPoint(root, e);
+      const imagePt = eventPoint(root, e, planeRef.current);
+      const selectedNow = markupRef.current.objects.find((o) => o.id === selectedRef.current[0]);
+      gestureFrame.current = Boolean(
+        selectedNow?.kind === 'shape' && selectedNow.stick === 'frame'
+      );
+      const pt = pointOn(selectedNow, imagePt);
       const frameSize = getFrameSize();
       const frameAspect = frameSize.width / Math.max(1, frameSize.height);
       const hitObject = (o: MarkupObject, px: number, py: number) =>
@@ -1277,6 +1389,43 @@ export function MarkupLayer({
         }
       }
 
+      // Move selects and drags the object under the pointer. Empty space clears
+      // the selection, then the view can still pan.
+      if (tool === 'move' && !spaceHeld.current && e.button !== 1 && e.button !== 2) {
+        const hit = [...markupRef.current.objects]
+          .reverse()
+          .find((o) => {
+            const p = pointOn(o, imagePt);
+            return (
+              (o.kind === 'shape' ||
+                o.kind === 'text' ||
+                o.kind === 'sticker' ||
+                o.kind === 'signature') &&
+              hitObject(o, p.x, p.y)
+            );
+          });
+        if (hit) {
+          e.preventDefault();
+          e.stopPropagation();
+          try {
+            root.setPointerCapture(e.pointerId);
+          } catch {
+            /* Safari */
+          }
+          drawing.current = true;
+          moveSlop.current = false;
+          inspectMode.current = null;
+          textTapEdits.current =
+            hit.kind === 'text' && selectedRef.current.includes(hit.id);
+          const gpt = pointOn(hit, imagePt);
+          gestureFrame.current = hit.kind === 'shape' && hit.stick === 'frame';
+          beginMove(gpt, [hit.id]);
+          schedulePaint();
+          return;
+        }
+        onSelectedIdsChange([]);
+      }
+
       // Move tool / Space / middle-mouse → pan the CSS view.
       const wantPan =
         tool === 'move' ||
@@ -1410,20 +1559,13 @@ export function MarkupLayer({
           .reverse()
           .find((o) => o.kind === 'text' && hitObject(o, pt.x, pt.y));
         if (hit && hit.kind === 'text') {
-          const now = performance.now();
-          const last = lastTextTap.current;
-          if (last && last.id === hit.id && now - last.t < TEXT_DOUBLE_TAP_MS) {
-            beginTextEditRef.current(hit.id);
-            lastTextTap.current = null;
-            drawing.current = false;
-            return;
-          }
-          // One press: select + show badge; keep drawing=true so drag moves the text.
+          // First press selects and shows the badge. A press on the selected text edits.
+          textTapEdits.current = selectedRef.current.includes(hit.id);
           beginMove(pt, [hit.id]);
-          lastTextTap.current = { id: hit.id, t: now };
           return;
         }
         // Empty canvas tap does not place text — use the Text button.
+        onSelectedIdsChange([]);
         drawing.current = false;
         return;
       }
@@ -1501,13 +1643,19 @@ export function MarkupLayer({
       if (tool === 'shape') {
         const hitShape = [...markupRef.current.objects]
           .reverse()
-          .find((o) => o.kind === 'shape' && hitObject(o, pt.x, pt.y));
+          .find((o) => {
+            if (o.kind !== 'shape') return false;
+            const p = pointOn(o, imagePt);
+            return hitObject(o, p.x, p.y);
+          });
         if (hitShape) {
+          const gpt = pointOn(hitShape, imagePt);
+          gestureFrame.current = hitShape.kind === 'shape' && hitShape.stick === 'frame';
           onSelectedIdsChange([hitShape.id]);
-          beginMove(pt, [hitShape.id]);
+          beginMove(gpt, [hitShape.id]);
           return;
         }
-        // Empty canvas tap does not place shapes — use the Shape button.
+        onSelectedIdsChange([]);
         drawing.current = false;
         return;
       }
@@ -1542,7 +1690,8 @@ export function MarkupLayer({
     };
 
     const onPointerMove = (e: PointerEvent) => {
-      const pt = eventPoint(root, e);
+      const raw = eventPoint(root, e, planeRef.current);
+      const pt = gestureFrame.current ? framePoint(raw) : raw;
       if (pointers.current.has(e.pointerId)) {
         pointerPos.current.set(e.pointerId, pt);
         clientPos.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -1666,6 +1815,7 @@ export function MarkupLayer({
             ids.has(o.id) ? translateObject(o, dx, dy) : o
           ),
         };
+        onLiveObjectsRef.current?.(objectScratch.current.objects);
         schedulePaint();
         return;
       }
@@ -1755,6 +1905,7 @@ export function MarkupLayer({
       pointers.current.delete(e.pointerId);
       pointerPos.current.delete(e.pointerId);
       clientPos.current.delete(e.pointerId);
+      if (pointers.current.size === 0) gestureFrame.current = false;
 
       if (inspectMode.current) {
         if (pointers.current.size === 0) {
@@ -1852,6 +2003,7 @@ export function MarkupLayer({
         moveStart.current = null;
         setChromeHidden(false);
         if (next) {
+          onLiveObjectsRef.current?.(null);
           onCommit(next);
         } else schedulePaint();
         if (!moveSlop.current && selectedRef.current[0]) {
@@ -1861,7 +2013,8 @@ export function MarkupLayer({
             suppressStickerMenu.current = false;
             setStickerMenuId(id);
           }
-          if (obj?.kind === 'text') {
+          if (textTapEdits.current && obj?.kind === 'text') {
+            textTapEdits.current = false;
             try {
               root.releasePointerCapture(e.pointerId);
             } catch {
@@ -1969,11 +2122,13 @@ export function MarkupLayer({
     if (selectedIds.length !== 1) return null;
     const obj = markup.objects.find((o) => o.id === selectedIds[0]);
     if (obj?.kind !== 'shape') return null;
+    if (coordinateSpace === 'image' && obj.stick === 'frame') return null;
+    if (coordinateSpace === 'frame' && obj.stick !== 'frame') return null;
     if (liveOpacity && liveOpacity.id === obj.id) {
       return { ...obj, opacity: liveOpacity.opacity };
     }
     return obj;
-  }, [selectedIds, markup.objects, liveOpacity]);
+  }, [selectedIds, markup.objects, liveOpacity, coordinateSpace]);
 
   const selectedText = useMemo((): MarkupText | null => {
     if (selectedIds.length !== 1 || editingId) return null;
@@ -2073,6 +2228,18 @@ export function MarkupLayer({
     onSelectedIdsChange([id]);
   };
 
+  const toggleShapeStick = (shape: MarkupShape) => {
+    const plane = stickPlaneRef.current;
+    if (!plane) return;
+    const next =
+      shape.stick === 'frame'
+        ? stickShapeToPhoto(shape, plane)
+        : stickShapeToFrame(shape, plane);
+    onCommit({
+      objects: markupRef.current.objects.map((obj) => (obj.id === shape.id ? next : obj)),
+    });
+  };
+
   const duplicateText = (text: MarkupText) => {
     const id = newId();
     const dup: MarkupText = {
@@ -2107,17 +2274,34 @@ export function MarkupLayer({
   return (
     <div
       ref={rootRef}
-      data-ie-part='markup-layer'
+      data-ie-part={coordinateSpace === 'frame' ? 'decorate-layer' : 'markup-layer'}
+      data-ie-space={coordinateSpace}
       data-ie-active={active ? 'true' : undefined}
       data-ie-tool={tool}
-      style={{
-        position: 'absolute',
-        inset: 0,
-        zIndex: 4,
-        pointerEvents: active ? 'auto' : 'none',
-        touchAction: 'none',
-        cursor: active && tool === 'move' ? 'grab' : undefined,
-      }}
+      style={
+        coordinateSpace !== 'frame' && plane && plane.width > 1 && plane.height > 1
+          ? {
+              position: 'absolute',
+              left: plane.left,
+              top: plane.top,
+              width: plane.width,
+              height: plane.height,
+              transform: plane.transform,
+              transformOrigin: 'center center',
+              zIndex: 4,
+              pointerEvents: active ? 'auto' : 'none',
+              touchAction: 'none',
+              cursor: active && tool === 'move' ? 'grab' : undefined,
+            }
+          : {
+              position: 'absolute',
+              inset: 0,
+              zIndex: coordinateSpace === 'frame' ? 6 : 4,
+              pointerEvents: active ? 'auto' : 'none',
+              touchAction: 'none',
+              cursor: active && tool === 'move' ? 'grab' : undefined,
+            }
+      }
     >
       <canvas
         ref={canvasRef}
@@ -2182,6 +2366,7 @@ export function MarkupLayer({
         />
 
       {selectedShape && badgeAnchor && !chromeHidden && (
+        <Upright angle={plane?.angleDeg ?? 0} origin={badgeAnchor}>
         <MarkupShapeBadge
           shape={selectedShape}
           anchorX={badgeAnchor.x}
@@ -2193,12 +2378,15 @@ export function MarkupLayer({
             patchShapeStyle(selectedShape.id, { opacity }, commit)
           }
           onDuplicate={() => duplicateShape(selectedShape)}
+          onToggleStick={() => toggleShapeStick(selectedShape)}
           onDelete={() => deleteShape(selectedShape.id)}
           onDismissSelection={() => onSelectedIdsChange([])}
         />
+        </Upright>
       )}
 
       {selectedText && textBadgeAnchorPt && !chromeHidden && (
+        <Upright angle={plane?.angleDeg ?? 0} origin={textBadgeAnchorPt}>
         <MarkupTextBadge
           text={selectedText}
           anchorX={textBadgeAnchorPt.x}
@@ -2228,9 +2416,17 @@ export function MarkupLayer({
           onDelete={() => deleteText(selectedText.id)}
           onDismissSelection={() => onSelectedIdsChange([])}
         />
+        </Upright>
       )}
 
       {selectedSticker && (
+        <Upright
+          angle={plane?.angleDeg ?? 0}
+          origin={{
+            x: selectedSticker.x + selectedSticker.w / 2,
+            y: Math.max(0.04, selectedSticker.y),
+          }}
+        >
         <div
           className='ie-sticker-context-menu'
           style={{
@@ -2271,6 +2467,7 @@ export function MarkupLayer({
             </svg>
           </button>
         </div>
+        </Upright>
       )}
     </div>
   );

@@ -2,12 +2,17 @@ import type { CropArea, EditorState, ExportOptions, FillState, LoadedImage, Tran
 import { applyAdjustments, createDefaultAdjust, hasAdjustments } from '../adjust/adjustments';
 import { getExportAdjustRenderer } from '../adjust/webglAdjust';
 import { createDefaultFilter, hasFilter } from '../filter/filterLooks';
-import { buildBlurFillSource, paintFillBackground } from '../fill/applyFill';
+import { buildBlurFillSource, ensureFillImage, getFillImage, paintFillBackground } from '../fill/applyFill';
 import { createDefaultFill, hasFill } from '../fill/fillState';
 import { applyFrame } from '../frame/applyFrame';
 import { createDefaultFrame, hasFrame } from '../frame/frameState';
 import { createDefaultMarkup, hasMarkup } from '../markup/types';
 import { renderMarkup } from '../markup/renderMarkup';
+import {
+  markupPlaneFromCrop,
+  migrateFrameMarkupToImage,
+  paintMarkupInPlane,
+} from '../markup/imagePlane';
 import { preloadMarkupStickers } from '../markup/stickerEmoji';
 import { applyRedact } from '../redact/applyRedact';
 import { createDefaultRedact, hasRedact } from '../redact/redactState';
@@ -80,6 +85,26 @@ export function renderToCanvas(
   octx.imageSmoothingQuality = 'high';
   drawOrientedOnly(octx, image, transform);
 
+  const fillState = fill ?? createDefaultFill();
+  let photo: HTMLCanvasElement = oriented;
+  if (hasFill(fillState)) {
+    const filled = document.createElement('canvas');
+    filled.width = oriented.width;
+    filled.height = oriented.height;
+    const fctx = filled.getContext('2d');
+    if (fctx) {
+      fctx.imageSmoothingEnabled = true;
+      fctx.imageSmoothingQuality = 'high';
+      const blurSource =
+        fillState.mode === 'edge-blur' ? buildBlurFillSource(oriented) : null;
+      const fillImage =
+        fillState.mode === 'image' && fillState.image ? getFillImage(fillState.image) : null;
+      paintFillBackground(fctx, filled.width, filled.height, fillState, blurSource, fillImage);
+      fctx.drawImage(oriented, 0, 0);
+      photo = filled;
+    }
+  }
+
   const pxScale = outW / fw;
 
   const out = document.createElement('canvas');
@@ -90,13 +115,7 @@ export function renderToCanvas(
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
 
-  const fillState = fill ?? createDefaultFill();
-  if (hasFill(fillState)) {
-    const blurSource =
-      fillState.mode === 'edge-blur' ? buildBlurFillSource(oriented) : null;
-    paintFillBackground(ctx, out.width, out.height, fillState, blurSource);
-  } else if (cropOutsideImage) {
-    ctx.fillStyle = '#00000000';
+  if (cropOutsideImage) {
     ctx.clearRect(0, 0, out.width, out.height);
   }
 
@@ -117,9 +136,9 @@ export function renderToCanvas(
       x: p.x * displayW,
       y: p.y * displayH,
     })) as [Point, Point, Point, Point];
-    drawPerspectiveImage(ctx, oriented, oriented.width, oriented.height, dest);
+    drawPerspectiveImage(ctx, photo, photo.width, photo.height, dest);
   } else {
-    ctx.drawImage(oriented, -displayW / 2, -displayH / 2, displayW, displayH);
+    ctx.drawImage(photo, -displayW / 2, -displayH / 2, displayW, displayH);
   }
   ctx.restore();
 
@@ -191,6 +210,8 @@ export async function exportImage(
   );
   const outputWidth = Math.max(1, Math.round(pixelCrop.width));
   const outputHeight = Math.max(1, Math.round(pixelCrop.height));
+  const fill = state.fill ?? createDefaultFill();
+  if (fill.mode === 'image' && fill.image) await ensureFillImage(fill.image);
 
   // Crop + geometry first — adjustments never touch the original source.
   let canvas = renderToCanvas(
@@ -224,18 +245,47 @@ export async function exportImage(
   }
 
   const markup = state.markup ?? createDefaultMarkup();
-  if (hasMarkup(markup)) {
+  const frameStuck = markup.objects.filter(
+    (obj) => obj.kind === 'shape' && obj.stick === 'frame'
+  );
+  const onPhoto = {
+    ...markup,
+    objects: markup.objects.filter((obj) => !(obj.kind === 'shape' && obj.stick === 'frame')),
+  };
+  if (hasMarkup(onPhoto)) {
     const ctx = canvas.getContext('2d');
     if (ctx) {
       // Twemoji stickers must be cached before bake so export matches preview.
-      await preloadMarkupStickers(markup);
-      // renderToCanvas leaves a frame-space transform on this context; reset
-      // so markup's normalized 0…1 coords map to output pixels.
+      await preloadMarkupStickers(onPhoto);
+      const plane = markupPlaneFromCrop(
+        containerWidth,
+        containerHeight,
+        mediaW,
+        mediaH,
+        state.crop,
+        state.transform,
+        cropOutsideImage
+      );
+      const drawable =
+        onPhoto.space === 'image' ? onPhoto : migrateFrameMarkupToImage(onPhoto, plane);
       ctx.save();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'source-over';
-      renderMarkup(ctx, markup, canvas.width, canvas.height);
+      paintMarkupInPlane(ctx, drawable, plane, canvas.width / Math.max(1, containerWidth));
+      ctx.restore();
+    }
+  }
+
+  if (frameStuck.length) {
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      await preloadMarkupStickers({ objects: frameStuck });
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+      renderMarkup(ctx, { objects: frameStuck }, canvas.width, canvas.height);
       ctx.restore();
     }
   }

@@ -13,7 +13,7 @@ import type {
 import { addShapePath, speechTailLocal } from './shapeGeometry';
 import { pointInRect } from './geometry';
 import { strokeSignaturePath } from './signatureUtils';
-import { paintStickerEmoji, preloadStickerEmoji } from './stickerEmoji';
+import { getCachedStickerBitmap, paintStickerEmoji, preloadStickerEmoji } from './stickerEmoji';
 import {
   layoutTextLineMeta,
   textBlockHeightNorm,
@@ -325,6 +325,12 @@ function paintSticker(
   ctx.translate(cx, cy);
   ctx.rotate(((sticker.rotation || 0) * Math.PI) / 180);
   ctx.translate(-w / 2, -h / 2);
+  if (sticker.style === 'image' && sticker.image) {
+    const img = getCachedStickerBitmap(sticker.image);
+    if (img) ctx.drawImage(img, 0, 0, w, h);
+    ctx.restore();
+    return;
+  }
   if (sticker.style === 'kaomoji') {
     const size = Math.max(10, Math.min(w, h) * 0.55);
     ctx.font = `600 ${size}px "Segoe UI", "Hiragino Sans", "Apple SD Gothic Neo", "Noto Sans", sans-serif`;

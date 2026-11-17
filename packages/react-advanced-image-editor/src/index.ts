@@ -35,6 +35,7 @@ export type { ImageEditorLocale, EditorMessages } from './i18n/messages';
 export type { ResolvedEditorLocale } from './i18n/resolve';
 export type {
   ImageEditorProps,
+  ImageEditorState,
   ImageEditorModalProps,
   ImageEditorPresentation,
   ImageEditorExportView,

@@ -48,6 +48,14 @@ export type EditorMessages = {
     fill: string;
     redact: string;
     frame: string;
+    resize: string;
+  };
+  resize: {
+    width: string;
+    height: string;
+    lock: string;
+    unlock: string;
+    reset: string;
   };
   frames: Record<string, string>;
   frameProps: {
@@ -63,6 +71,23 @@ export type EditorMessages = {
     solid: string;
     edgeBlur: string;
     color: string;
+    image: string;
+    choose: string;
+    addColor: string;
+  };
+  fillColors: {
+    original: string;
+    black: string;
+    gray: string;
+    red: string;
+    orange: string;
+    yellow: string;
+    green: string;
+    teal: string;
+    blue: string;
+    indigo: string;
+    purple: string;
+    pink: string;
   };
   redact: {
     move: string;
@@ -140,6 +165,14 @@ export const editorMessages: Record<ImageEditorLocale, EditorMessages> = {
       fill: 'Fill',
       redact: 'Redact',
       frame: 'Frame',
+      resize: 'Resize',
+    },
+    resize: {
+      width: 'Width',
+      height: 'Height',
+      lock: 'Lock aspect ratio',
+      unlock: 'Unlock aspect ratio',
+      reset: 'Reset',
     },
     frames: {
       none: 'None',
@@ -191,7 +224,29 @@ export const editorMessages: Record<ImageEditorLocale, EditorMessages> = {
       spacing: 'Spacing',
       shadow: 'Shadow',
     },
-    fillModes: { none: 'None', solid: 'Solid', edgeBlur: 'Blur', color: 'Color' },
+    fillModes: {
+      none: 'None',
+      solid: 'Color',
+      edgeBlur: 'Blur',
+      color: 'Color',
+      image: 'Image',
+      choose: 'Choose image',
+      addColor: 'Custom color',
+    },
+    fillColors: {
+      original: 'Original',
+      black: 'Black',
+      gray: 'Gray',
+      red: 'Red',
+      orange: 'Orange',
+      yellow: 'Yellow',
+      green: 'Green',
+      teal: 'Teal',
+      blue: 'Blue',
+      indigo: 'Indigo',
+      purple: 'Purple',
+      pink: 'Pink',
+    },
     redact: {
       move: 'Move',
       pixelate: 'Pixelate',
@@ -313,6 +368,14 @@ export const editorMessages: Record<ImageEditorLocale, EditorMessages> = {
       fill: 'Doldur',
       redact: 'Sansür',
       frame: 'Çerçeve',
+      resize: 'Boyut',
+    },
+    resize: {
+      width: 'Genişlik',
+      height: 'Yükseklik',
+      lock: 'Oranı kilitle',
+      unlock: 'Oran kilidini aç',
+      reset: 'Sıfırla',
     },
     frames: {
       none: 'Yok',
@@ -364,7 +427,29 @@ export const editorMessages: Record<ImageEditorLocale, EditorMessages> = {
       spacing: 'Boşluk',
       shadow: 'Gölge',
     },
-    fillModes: { none: 'Yok', solid: 'Düz Renk', edgeBlur: 'Bulanık', color: 'Renk' },
+    fillModes: {
+      none: 'Yok',
+      solid: 'Renk',
+      edgeBlur: 'Bulanık',
+      color: 'Renk',
+      image: 'Görsel',
+      choose: 'Görsel seç',
+      addColor: 'Özel renk',
+    },
+    fillColors: {
+      original: 'Orijinal',
+      black: 'Siyah',
+      gray: 'Gri',
+      red: 'Kırmızı',
+      orange: 'Turuncu',
+      yellow: 'Sarı',
+      green: 'Yeşil',
+      teal: 'Turkuaz',
+      blue: 'Mavi',
+      indigo: 'İndigo',
+      purple: 'Mor',
+      pink: 'Pembe',
+    },
     redact: {
       move: 'Taşı',
       pixelate: 'Pikselle',
@@ -492,6 +577,14 @@ export const editorMessages: Record<ImageEditorLocale, EditorMessages> = {
       fill: '塗りつぶし',
       redact: '墨消し',
       frame: 'フレーム',
+      resize: 'サイズ',
+    },
+    resize: {
+      width: '幅',
+      height: '高さ',
+      lock: '比率を固定',
+      unlock: '比率の固定を解除',
+      reset: 'リセット',
     },
     frames: {
       none: 'なし',
@@ -543,7 +636,29 @@ export const editorMessages: Record<ImageEditorLocale, EditorMessages> = {
       spacing: '余白',
       shadow: 'シャドウ',
     },
-    fillModes: { none: 'なし', solid: '単色', edgeBlur: 'ぼかし', color: 'カラー' },
+    fillModes: {
+      none: 'なし',
+      solid: 'カラー',
+      edgeBlur: 'ぼかし',
+      color: 'カラー',
+      image: '画像',
+      choose: '画像を選択',
+      addColor: 'カスタムカラー',
+    },
+    fillColors: {
+      original: 'オリジナル',
+      black: '黒',
+      gray: 'グレー',
+      red: '赤',
+      orange: 'オレンジ',
+      yellow: '黄',
+      green: '緑',
+      teal: 'ティール',
+      blue: '青',
+      indigo: '藍',
+      purple: '紫',
+      pink: 'ピンク',
+    },
     redact: {
       move: '移動',
       pixelate: 'モザイク',

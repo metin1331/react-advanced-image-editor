@@ -80,6 +80,7 @@ export function ModePresence({
   'data-ie-part': dataPart,
   'data-ie-crop-fade': cropFade,
   'data-ie-filter-label': filterLabel,
+  'data-ie-fill-label': fillLabel,
   'aria-hidden': ariaHidden,
 }: {
   show: boolean;
@@ -90,6 +91,7 @@ export function ModePresence({
   'data-ie-part'?: string;
   'data-ie-crop-fade'?: string;
   'data-ie-filter-label'?: string;
+  'data-ie-fill-label'?: string;
   'aria-hidden'?: boolean;
 }) {
   const [mounted, setMounted] = useState(show);
@@ -143,6 +145,7 @@ export function ModePresence({
       data-ie-part={dataPart}
       data-ie-crop-fade={cropFade}
       data-ie-filter-label={filterLabel}
+      data-ie-fill-label={fillLabel}
       data-ie-mode-presence=''
       data-ie-open={open ? 'true' : 'false'}
       data-ie-collapse={collapse ? 'true' : undefined}

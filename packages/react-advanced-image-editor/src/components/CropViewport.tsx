@@ -14,12 +14,16 @@ import {
   createDefaultRuler,
   hasAdjustments,
   hasFill,
+  fillBlurRadius,
   hasFilter,
   hasFrame,
   hasMarkup,
   hasRedact,
-  perspectiveCssTransform,
   computeFrameLayout,
+  framePointToImage,
+  markupPlaneFromCrop,
+  markupPlaneTransform,
+  migrateFrameMarkupToImage,
   type AdjustState,
   type CropArea,
   type EraserMode,
@@ -280,6 +284,8 @@ type Props = {
   onMarkupRulerChange?: (ruler: MarkupRuler) => void;
   onMarkupSelectedIdsChange?: (ids: string[]) => void;
   onMarkupCommit?: (next: MarkupState) => void;
+  /** Rewrite crop-frame markup onto the photo without an undo step. */
+  onMarkupAdopt?: (next: MarkupState) => void;
   /**
    * Label for the compare-original badge shown briefly after tapping the photo
    * in Calibrate / Filter to peek at the ungraded crop.
@@ -439,6 +445,7 @@ export function CropViewport({
   onMarkupRulerChange,
   onMarkupSelectedIdsChange,
   onMarkupCommit,
+  onMarkupAdopt,
   compareOriginalLabel = 'Original',
   previewToolId,
   compareResetKey,
@@ -473,6 +480,7 @@ export function CropViewport({
    */
   const [compareOriginal, setCompareOriginal] = useState(false);
   const [compareBadgeVisible, setCompareBadgeVisible] = useState(false);
+  const [liveMarkupObjects, setLiveMarkupObjects] = useState<import('react-advanced-image-editor-core').MarkupObject[] | null>(null);
   const compareBadgeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragMode = useRef<'none' | 'pan' | 'pinch' | CropHandle>('none');
   const gestureStart = useRef<GestureStart | null>(null);
@@ -1201,22 +1209,6 @@ export function CropViewport({
 
   // Applied right-to-left: flips happen in image space, then the keystone
   // homography, then the on-screen rotation — the same order the exporter uses.
-  const perspectiveMatrix = perspectiveCssTransform(
-    displayW,
-    displayH,
-    perspectiveX,
-    perspectiveY
-  );
-
-  const transformStyle = [
-    `rotate(${angleDeg}deg)`,
-    perspectiveMatrix ?? '',
-    transform.flipX ? 'scaleX(-1)' : '',
-    transform.flipY ? 'scaleY(-1)' : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
-
   const wheelTargetRef = useRef<HTMLDivElement | null>(null);
 
   const setViewportNode = useCallback(
@@ -1622,6 +1614,36 @@ export function CropViewport({
     modeTransitionVisual?.img.width ?? handleDragVisual?.imageW ?? displayW;
   const renderImgH =
     modeTransitionVisual?.img.height ?? handleDragVisual?.imageH ?? displayH;
+  const photoTransform = markupPlaneTransform({
+    angleDeg,
+    flipX: transform.flipX,
+    flipY: transform.flipY,
+    perspectiveX,
+    perspectiveY,
+    imgW: renderImgW,
+    imgH: renderImgH,
+  });
+  const markupPlane = markupPlaneFromCrop(
+    Math.max(1, displayFrame.width),
+    Math.max(1, displayFrame.height),
+    mw,
+    mh,
+    safeCrop,
+    transform,
+    cropOutsideImage,
+  );
+  const shownMarkup =
+    markupProp && markupProp.space !== 'image'
+      ? migrateFrameMarkupToImage(markupProp, markupPlane)
+      : markupProp;
+  const frameSource = liveMarkupObjects ?? shownMarkup?.objects ?? [];
+  const frameStuck = frameSource.filter(
+    (obj) => obj.kind === 'shape' && obj.stick === 'frame'
+  );
+  const planeOriginLeft =
+    framePreview && frameLayout ? layoutFrame.left : displayFrame.left;
+  const planeOriginTop =
+    framePreview && frameLayout ? layoutFrame.top : displayFrame.top;
   const modeTransitionActive = modeTransitionVisual !== null;
   if (!modeTransitionVisual) {
     glBakeRef.current = { width: frame.width, height: frame.height };
@@ -1659,6 +1681,12 @@ export function CropViewport({
     [],
   );
 
+  useEffect(() => {
+    if (!markupProp || markupProp.space === 'image') return;
+    if (markupPlane.imgW < 2 || markupPlane.imgH < 2) return;
+    onMarkupAdopt?.(migrateFrameMarkupToImage(markupProp, markupPlane));
+  }, [markupProp, markupPlane, onMarkupAdopt]);
+
   return (
     <div
       ref={setViewportNode}
@@ -1690,6 +1718,39 @@ export function CropViewport({
       onPointerCancel={onPointerUp}
     >
       <div data-ie-part='canvas' className={classNames.canvas}>
+        {showFillBackdrop && (
+          <div
+            className='ie-fill-backdrop'
+            data-ie-fill-mode={fillState!.mode}
+            aria-hidden
+            style={{
+              left: renderImgLeft,
+              top: renderImgTop,
+              width: renderImgW,
+              height: renderImgH,
+                transform:
+                fillState!.mode === 'edge-blur'
+                  ? `scale(1.08) ${photoTransform}`
+                  : photoTransform,
+              transformOrigin: 'center center',
+              background:
+                fillState!.mode === 'solid' ? fillState!.color : undefined,
+              backgroundImage:
+                fillState!.mode === 'image' && fillState!.image
+                  ? `url("${fillState!.image}")`
+                  : fillState!.mode === 'edge-blur'
+                    ? `url("${imageUrl}")`
+                    : undefined,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              filter:
+                fillState!.mode === 'edge-blur'
+                  ? `blur(${fillBlurRadius(fillState)}px) saturate(1.15)`
+                  : undefined,
+            }}
+          />
+        )}
         <img
           src={imageUrl}
           alt=''
@@ -1697,7 +1758,7 @@ export function CropViewport({
           style={{
             width: renderImgW,
             height: renderImgH,
-            transform: transformStyle,
+            transform: photoTransform,
             position: 'absolute',
             left: renderImgLeft,
             top: renderImgTop,
@@ -1708,19 +1769,6 @@ export function CropViewport({
           }}
         />
       </div>
-
-      {showFillBackdrop && (
-        <div
-          className='ie-fill-backdrop'
-          data-ie-fill-mode={fillState!.mode}
-          aria-hidden
-          style={
-            fillState!.mode === 'solid'
-              ? { background: fillState!.color }
-              : undefined
-          }
-        />
-      )}
 
       {/*
         Opaque graded crop sits on top of the frame only. Outside the frame the
@@ -1841,11 +1889,26 @@ export function CropViewport({
             }}
             aspectRatio={frameAspect}
             cropOutsideImage={cropOutsideImage}
+            fill={fillState}
           />
           {(markupActive || hasMarkup(markupProp)) && (
             <MarkupLayer
               active={markupActive}
-              markup={markupProp ?? createDefaultMarkup()}
+              markup={shownMarkup ?? createDefaultMarkup()}
+              plane={{
+                left: renderImgLeft - planeOriginLeft,
+                top: renderImgTop - planeOriginTop,
+                width: renderImgW,
+                height: renderImgH,
+                transform: photoTransform,
+                angleDeg,
+                flipX: transform.flipX,
+                flipY: transform.flipY,
+                perspectiveX,
+                perspectiveY,
+              }}
+              placementCenter={framePointToImage(0.5, 0.5, markupPlane)}
+              framePx={{ width: displayFrame.width, height: displayFrame.height }}
               tool={markupTool}
               eraserMode={markupEraserMode}
               color={markupColor}
@@ -1854,13 +1917,15 @@ export function CropViewport({
               shapeKind={markupShapeKind}
               textAlign={markupTextAlign}
               ruler={markupRuler ?? createDefaultRuler()}
-              selectedIds={markupSelectedIds}
+              selectedIds={markupActive ? markupSelectedIds : []}
               signatureTemplate={markupSignatureTemplate}
               shapeBadgeLabels={shapeBadgeLabels}
               textBadgeLabels={textBadgeLabels}
               fonts={markupFonts}
-              placeRequest={placeRequest}
+              placeRequest={markupActive ? placeRequest : null}
               photoSource={markupPhotoSource}
+              stickPlane={markupPlane}
+              onLiveObjects={setLiveMarkupObjects}
               inspect={inspect}
               onRulerChange={(r) => onMarkupRulerChange?.(r)}
               onSelectedIdsChange={(ids) => onMarkupSelectedIdsChange?.(ids)}
@@ -1869,8 +1934,43 @@ export function CropViewport({
               onChromeHoldFadeEnd={onMarkupChromeHoldFadeEnd}
             />
           )}
+          {frameStuck.length > 0 && (
+            <MarkupLayer
+              coordinateSpace="frame"
+              active={false}
+              markup={{ objects: frameStuck }}
+              stickPlane={markupPlane}
+              placementCenter={{ x: 0.5, y: 0.5 }}
+              framePx={{ width: displayFrame.width, height: displayFrame.height }}
+              tool={markupTool}
+              eraserMode={markupEraserMode}
+              color={markupColor}
+              strokeWidth={markupStrokeWidth}
+              strokeOpacity={markupStrokeOpacity}
+              shapeKind={markupShapeKind}
+              textAlign={markupTextAlign}
+              ruler={markupRuler ?? createDefaultRuler()}
+              selectedIds={markupActive ? markupSelectedIds : []}
+              signatureTemplate={markupSignatureTemplate}
+              shapeBadgeLabels={shapeBadgeLabels}
+              textBadgeLabels={textBadgeLabels}
+              fonts={markupFonts}
+              photoSource={markupPhotoSource}
+              onRulerChange={(r) => onMarkupRulerChange?.(r)}
+              onSelectedIdsChange={(ids) => onMarkupSelectedIdsChange?.(ids)}
+              onCommit={(next) => {
+                const photo = (shownMarkup?.objects ?? []).filter(
+                  (obj) => !(obj.kind === 'shape' && obj.stick === 'frame')
+                );
+                onMarkupCommit?.({
+                  objects: [...photo, ...next.objects],
+                  space: 'image',
+                });
+              }}
+            />
+          )}
           <MarkupEyedropLayer
-            active={Boolean(eyedropActive && markupActive)}
+            active={Boolean(eyedropActive)}
             loadedImage={loadedImage}
             crop={safeCrop}
             transform={transform}

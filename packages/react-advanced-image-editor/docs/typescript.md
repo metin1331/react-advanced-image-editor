@@ -68,6 +68,7 @@ const editor: UseImageEditorReturn = useImageEditor(file, { initialZoom: 1 });
 ## Strictness notes
 
 - `onExport` and `onCancel` are required. Omitting either is a type error.
+- `imageState` and `onImageStateChange` are optional. The value type is `ImageEditorState`.
 - `labels` is `Partial<ImageEditorLabels>`, so unknown keys are rejected.
 - `colors` only accepts keys of `ImageEditorThemeColors`.
 - `ImageEditorModalProps` is a deprecated alias of `ImageEditorProps`.

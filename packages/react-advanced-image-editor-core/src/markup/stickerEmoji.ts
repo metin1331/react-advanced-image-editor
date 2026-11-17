@@ -17,6 +17,8 @@ const EMOJI_FONT =
 
 const imageCache = new Map<string, HTMLImageElement | null>();
 const pending = new Map<string, Promise<HTMLImageElement | null>>();
+const bitmapCache = new Map<string, HTMLImageElement | null>();
+const bitmapPending = new Map<string, Promise<HTMLImageElement | null>>();
 
 /** Convert an emoji (incl. ZWJ sequences) to a Twemoji file stem. */
 export function emojiToTwemojiCode(emoji: string): string {
@@ -67,15 +69,44 @@ export function preloadStickerEmoji(emoji: string): Promise<HTMLImageElement | n
   return loadTwemojiImage(emoji);
 }
 
+export function preloadStickerBitmap(src: string): Promise<HTMLImageElement | null> {
+  if (!src || typeof Image === 'undefined') return Promise.resolve(null);
+  const cached = bitmapCache.get(src);
+  if (cached !== undefined) return Promise.resolve(cached);
+  const inflight = bitmapPending.get(src);
+  if (inflight) return inflight;
+  const promise = new Promise<HTMLImageElement | null>((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      bitmapCache.set(src, img);
+      bitmapPending.delete(src);
+      resolve(img);
+    };
+    img.onerror = () => {
+      bitmapCache.set(src, null);
+      bitmapPending.delete(src);
+      resolve(null);
+    };
+    img.src = src;
+  });
+  bitmapPending.set(src, promise);
+  return promise;
+}
+
+export function getCachedStickerBitmap(src: string): HTMLImageElement | null | undefined {
+  return bitmapCache.get(src);
+}
+
 /** Ensure every sticker in markup has a cached bitmap before export. */
 export async function preloadMarkupStickers(markup?: MarkupState | null): Promise<void> {
   if (!markup?.objects?.length) return;
-  const emojis = [
-    ...new Set(
-      markup.objects.filter((o) => o.kind === 'sticker').map((o) => (o as { emoji: string }).emoji)
-    ),
-  ];
-  await Promise.all(emojis.map((e) => loadTwemojiImage(e)));
+  const jobs: Promise<HTMLImageElement | null>[] = [];
+  for (const obj of markup.objects) {
+    if (obj.kind !== 'sticker') continue;
+    if (obj.style === 'image' && obj.image) jobs.push(preloadStickerBitmap(obj.image));
+    else if (obj.emoji) jobs.push(loadTwemojiImage(obj.emoji));
+  }
+  await Promise.all(jobs);
 }
 
 export function getCachedStickerImage(emoji: string): HTMLImageElement | null | undefined {

@@ -192,7 +192,7 @@ export interface EditorSnapshot {
   transform: TransformState;
   adjust: AdjustState;
   filter: FilterState;
-  /** Freehand markup drawn over the graded crop (Phase 1: strokes). */
+  /** Drawings stuck to the photo. A shape may set `stick: 'frame'` to stay on the crop. */
   markup: MarkupState;
   /** Letterbox / background fill behind the crop frame. */
   fill: FillState;

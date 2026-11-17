@@ -64,6 +64,7 @@ export type MarkupToolbarLabels = {
   addText: string;
   addSticker: string;
   addShape: string;
+  addImage: string;
   addSignature: string;
   addLoupe: string;
   color: string;
@@ -93,6 +94,7 @@ export const defaultMarkupLabels: MarkupToolbarLabels = {
   addText: "Add Text",
   addSticker: "Add Sticker",
   addShape: "Add Shape",
+  addImage: "Add Image",
   addSignature: "Add Signature",
   addLoupe: "Add Loupe",
   color: "Color",
@@ -130,14 +132,17 @@ type Props = {
   onOpenColorPicker?: () => void;
   /** Places a magnifier on the photo (Markup → Add Loupe). */
   onAddLoupe?: () => void;
+  /** Opens a file picker and places the image as a sticker. */
+  onAddImage?: () => void;
 };
 
-type AddMenuKind = "text" | "sticker" | "shape" | "signature" | "loupe";
+type AddMenuKind = "text" | "sticker" | "shape" | "image" | "signature" | "loupe";
 
 const ADD_MENU_ITEMS: AddMenuKind[] = [
   "text",
   "sticker",
   "shape",
+  "image",
   "signature",
   "loupe",
 ];
@@ -460,6 +465,15 @@ function AddMenuIcon({ kind }: { kind: AddMenuKind }) {
       </svg>
     );
   }
+  if (kind === "image") {
+    return (
+      <svg {...common}>
+        <rect x="3.5" y="5" width="17" height="14" rx="2" />
+        <circle cx="8.5" cy="9.5" r="1.4" />
+        <path d="m21 15-4.2-4.2a1.4 1.4 0 0 0-2 .1L9 17" />
+      </svg>
+    );
+  }
   if (kind === "signature") {
     return (
       <svg {...common}>
@@ -599,6 +613,7 @@ export function EditorMarkupToolbar({
   onOpenStickerSheet,
   onOpenColorPicker,
   onAddLoupe,
+  onAddImage,
 }: Props) {
   const labels = { ...defaultMarkupLabels, ...labelOverrides };
   const [optionsOpen, setOptionsOpen] = useState(false);
@@ -687,7 +702,9 @@ export function EditorMarkupToolbar({
         ? labels.addSticker
         : id === "shape"
           ? labels.addShape
-          : id === "signature"
+          : id === "image"
+            ? labels.addImage
+            : id === "signature"
             ? labels.addSignature
             : labels.addLoupe;
 
@@ -707,6 +724,11 @@ export function EditorMarkupToolbar({
     if (id === "shape") {
       onToolChange("shape");
       setOptionsOpen(true);
+      return;
+    }
+    if (id === "image") {
+      setOptionsOpen(false);
+      onAddImage?.();
       return;
     }
     if (id === "signature") {

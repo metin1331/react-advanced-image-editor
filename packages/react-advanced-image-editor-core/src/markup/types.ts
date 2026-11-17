@@ -135,6 +135,11 @@ export interface MarkupShape {
   tailV?: number;
   /** Speech-bubble tail base width as a fraction of min(w,h). */
   tailWidth?: number;
+  /**
+   * `frame` — this shape stays on the crop window when the photo moves.
+   * Omitted — the shape is stuck to the photo.
+   */
+  stick?: 'frame';
 }
 
 /**
@@ -159,10 +164,12 @@ export interface MarkupSignature {
 export interface MarkupSticker {
   kind: 'sticker';
   id: string;
-  /** Unicode emoji or kaomoji string. */
+  /** Unicode emoji or kaomoji string. Empty when `style` is `image`. */
   emoji: string;
-  /** Rendering mode — emoji uses Twemoji; kaomoji uses text. */
-  style: 'emoji' | 'kaomoji';
+  /** Rendering mode — emoji uses Twemoji; kaomoji uses text; image uses `image`. */
+  style: 'emoji' | 'kaomoji' | 'image';
+  /** Data URL when `style` is `image`. */
+  image?: string;
   x: number;
   y: number;
   w: number;
@@ -214,10 +221,15 @@ export interface MarkupRuler {
 
 export interface MarkupState {
   objects: MarkupObject[];
+  /**
+   * `image` — coordinates stick to the photo and rotate with it.
+   * Omitted on older saves, which used the crop frame.
+   */
+  space?: 'image';
 }
 
 export function createDefaultMarkup(): MarkupState {
-  return { objects: [] };
+  return { objects: [], space: 'image' };
 }
 
 export function createDefaultRuler(): MarkupRuler {
@@ -256,6 +268,7 @@ export function isLoupe(o: MarkupObject): o is MarkupLoupe {
 
 export function cloneMarkup(markup: MarkupState): MarkupState {
   return {
+    ...(markup.space === 'image' ? { space: 'image' as const } : {}),
     objects: markup.objects.map((obj) => {
       if (obj.kind === 'stroke') {
         return { ...obj, points: obj.points.map((p) => ({ ...p })) };
@@ -379,6 +392,7 @@ function normalizeShape(raw: Record<string, unknown>): MarkupShape | null {
     ...(raw.tailU != null ? { tailU: Number(raw.tailU) } : null),
     ...(raw.tailV != null ? { tailV: Number(raw.tailV) } : null),
     ...(raw.tailWidth != null ? { tailWidth: Number(raw.tailWidth) } : null),
+    ...(raw.stick === 'frame' ? { stick: 'frame' as const } : null),
   };
 }
 
@@ -410,6 +424,25 @@ function normalizeSignature(raw: Record<string, unknown>): MarkupSignature | nul
 }
 
 function normalizeSticker(raw: Record<string, unknown>): MarkupSticker | null {
+  if (raw.style === 'image') {
+    const image = typeof raw.image === 'string' ? raw.image : '';
+    if (!image.startsWith('data:image/') || image.length > 8_000_000) return null;
+    const size = Math.max(0.06, Number(raw.w) || Number(raw.h) || 0.28);
+    const w = Math.max(0.06, Number(raw.w) || size);
+    const h = Math.max(0.06, Number(raw.h) || size);
+    return {
+      kind: 'sticker',
+      id: String(raw.id ?? ''),
+      emoji: '',
+      style: 'image',
+      image,
+      x: Number(raw.x) || 0,
+      y: Number(raw.y) || 0,
+      w,
+      h,
+      rotation: Number(raw.rotation) || 0,
+    };
+  }
   const emoji = String(raw.emoji ?? '').trim();
   if (!emoji) return null;
   const style = raw.style === 'kaomoji' ? 'kaomoji' : 'emoji';
@@ -469,7 +502,7 @@ export function normalizeMarkup(input?: Partial<MarkupState> | null): MarkupStat
       if (s) objects.push(s);
     }
   }
-  return { objects };
+  return input.space === 'image' ? { objects, space: 'image' } : { objects };
 }
 
 export function hasMarkup(markup?: MarkupState | null): boolean {

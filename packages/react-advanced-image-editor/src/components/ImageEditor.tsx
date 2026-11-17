@@ -10,8 +10,18 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { downscaleBlob } from "react-advanced-image-editor-core";
-import { parseCssColor, toCssColor } from "../color/cssColor";
+import {
+  computeFrameLayout,
+  computePixelCrop,
+  downscaleBlob,
+  ensureFillImage,
+  framePointToImage,
+  markupPlaneFromCrop,
+  migrateFrameMarkupToImage,
+  normalizeEditorSnapshot,
+} from "react-advanced-image-editor-core";
+import { resizeBlob } from "../export/resizeBlob";
+import { cssColorToHex, parseCssColor, toCssColor } from "../color/cssColor";
 import { useImageEditor } from "../hooks/useImageEditor";
 import { useFilterThumbnails } from "../hooks/useFilterThumbnails";
 import { CropViewport } from "./CropViewport";
@@ -71,6 +81,15 @@ import { EditorColorPicker } from "./EditorColorPicker";
 import { EditorModeStrip } from "./EditorModeStrip";
 import { EditorCropShapePanel } from "./EditorCropShapePanel";
 import { EditorFrameStrip } from "./EditorFrameStrip";
+import { EditorResizeStrip } from "./EditorResizeStrip";
+import { EditorFillStrip } from "./EditorFillStrip";
+import {
+  FILL_SWATCH_NAMES,
+  fillSwatchColor,
+  fillSwatchHasRuler,
+  fillSwatchLabel,
+  type FillSwatchName,
+} from "../color/tailwindPalette";
 import { EditorRedactToolbar, RedactLayer } from "./RedactLayer";
 import { EditorPresetPicker } from "./EditorPresetPicker";
 import { EditorSidebarTools } from "./EditorSidebarTools";
@@ -126,6 +145,7 @@ import {
   type ImageEditorContainer,
   type ImageEditorLabels,
   type ImageEditorProps,
+  type ImageEditorState,
 } from "../types";
 
 function cn(...parts: Array<string | false | null | undefined>) {
@@ -197,7 +217,7 @@ function useInlineHost(
 
 function isTypingTarget(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
-  if (!el) return false;
+  if (!el || typeof el.closest !== "function") return false;
   const tag = el.tagName;
   if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
   if (el.isContentEditable) return true;
@@ -279,8 +299,10 @@ const SIDEBAR_TOOL_IDS = [
   "calibrate",
   "filter",
   "annotate",
+  "fill",
   "redact",
   "frame",
+  "resize",
 ] as const;
 
 type SidebarToolId = (typeof SIDEBAR_TOOL_IDS)[number];
@@ -602,9 +624,9 @@ function SidebarToolIcon({ id }: { id: SidebarToolId }) {
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          stroke-width="1.55"
-          stroke-linecap="round"
-          stroke-linejoin="round"
+          strokeWidth="1.55"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
           <path d="M6 2v14a2 2 0 0 0 2 2h14" />
           <path d="M18 22V8a2 2 0 0 0-2-2H2" />
@@ -717,6 +739,26 @@ function SidebarToolIcon({ id }: { id: SidebarToolId }) {
           <circle cx="12" cy="8" r="4" fill="currentColor" stroke="none" />
         </svg>
       );
+    case "fill":
+      return (
+        <svg
+          {...common}
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          width="24"
+          height="24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.55"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M11 7 6 2" />
+          <path d="M18.992 12H2.041" />
+          <path d="M21.145 18.38A3.34 3.34 0 0 1 20 16.5a3.3 3.3 0 0 1-1.145 1.88c-.575.46-.855 1.02-.855 1.595A2 2 0 0 0 20 22a2 2 0 0 0 2-2.025c0-.58-.285-1.13-.855-1.595" />
+          <path d="m8.5 4.5 2.148-2.148a1.205 1.205 0 0 1 1.704 0l7.296 7.296a1.205 1.205 0 0 1 0 1.704l-7.592 7.592a3.615 3.615 0 0 1-5.112 0l-3.888-3.888a3.615 3.615 0 0 1 0-5.112L5.67 7.33" />
+        </svg>
+      );
     case "annotate":
       return (
         <svg
@@ -727,9 +769,9 @@ function SidebarToolIcon({ id }: { id: SidebarToolId }) {
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
+          strokeWidth="1.55"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
           <path d="M10 3H8" />
           <path d="m15.007 5.008 3.987 3.986" />
@@ -751,9 +793,9 @@ function SidebarToolIcon({ id }: { id: SidebarToolId }) {
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          stroke-width="1.55"
-          stroke-linecap="round"
-          stroke-linejoin="round"
+          strokeWidth="1.55"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
           <rect x="3" y="3" width="18" height="18" rx="2" />
           <path d="M9 3v18" />
@@ -771,14 +813,23 @@ function SidebarToolIcon({ id }: { id: SidebarToolId }) {
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          stroke-width="1.55"
-          stroke-linecap="round"
-          stroke-linejoin="round"
+          strokeWidth="1.55"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
           <line x1="22" x2="2" y1="6" y2="6" />
           <line x1="22" x2="2" y1="18" y2="18" />
           <line x1="6" x2="6" y1="2" y2="22" />
           <line x1="18" x2="18" y1="2" y2="22" />
+        </svg>
+      );
+    case "resize":
+      return (
+        <svg {...common}>
+          <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+          <path d="M14 15H9v-5" />
+          <path d="M16 3h5v5" />
+          <path d="M21 3 9 15" />
         </svg>
       );
   }
@@ -793,9 +844,9 @@ function IconRedactRectangle() {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
     >
       <path d="M5 3a2 2 0 0 0-2 2" />
       <path d="M19 3a2 2 0 0 1 2 2" />
@@ -834,23 +885,162 @@ function IconRedactBrush() {
   );
 }
 
-function buildSidebarTools(labels: ImageEditorLabels) {
+function IconFillColor() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden
+    >
+      <path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z" />
+      <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" />
+      <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" />
+      <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
+      <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />
+    </svg>
+  );
+}
+
+function IconFillImage() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-image-up preview-icon"><path d="M10.3 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10l-3.1-3.1a2 2 0 0 0-2.814.014L6 21"/><path d="m14 19.5 3-3 3 3"/><path d="M17 22v-5.5"/><circle cx="9" cy="9" r="2"/></svg>
+  );
+}
+
+function IconFillBlur() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="m14.31 8 5.74 9.94" />
+      <path d="M9.69 8h11.48" />
+      <path d="m7.38 12 5.74-9.94" />
+      <path d="M9.69 16 3.95 6.06" />
+      <path d="M14.31 16H2.83" />
+      <path d="m16.62 12-5.74 9.94" />
+    </svg>
+  );
+}
+
+function buildSidebarTools(
+  labels: ImageEditorLabels,
+  enableResize: boolean,
+  enableFill: boolean,
+) {
   const toolLabels = { ...defaultLabels.tools, ...labels.tools };
   const calibrateLabel =
     toolLabels.calibrate ??
     toolLabels.finetune ??
     defaultLabels.tools?.calibrate ??
     "Calibrate";
-  return SIDEBAR_TOOL_IDS.map((id) => ({
+  return SIDEBAR_TOOL_IDS.filter(
+    (id) => (enableResize || id !== "resize") && (enableFill || id !== "fill"),
+  ).map((id) => ({
     id,
     label: id === "calibrate" ? calibrateLabel : (toolLabels[id] ?? id),
     enabled: true,
   }));
 }
 
+async function readStickerImage(file: File) {
+  const bitmap = await createImageBitmap(file);
+  const maxEdge = 1280;
+  const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
+  const width = Math.max(1, Math.round(bitmap.width * scale));
+  const height = Math.max(1, Math.round(bitmap.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    bitmap.close();
+    return null;
+  }
+  ctx.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close();
+  const pixels = ctx.getImageData(0, 0, width, height).data;
+  let transparent = false;
+  for (let i = 3; i < pixels.length; i += 64) {
+    if (pixels[i] < 250) {
+      transparent = true;
+      break;
+    }
+  }
+  return {
+    url: canvas.toDataURL(transparent ? "image/png" : "image/jpeg", 0.86),
+    width,
+    height,
+  };
+}
+
+async function readFillImage(file: File) {
+  const bitmap = await createImageBitmap(file);
+  const maxEdge = 1600;
+  const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
+  const width = Math.max(1, Math.round(bitmap.width * scale));
+  const height = Math.max(1, Math.round(bitmap.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    bitmap.close();
+    return "";
+  }
+  ctx.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close();
+  return canvas.toDataURL("image/jpeg", 0.85);
+}
+
 function zoomToScaleValue(zoom: number, minZoom: number, maxZoom: number) {
   const span = Math.max(0.0001, maxZoom - minZoom);
   return Math.round(((zoom - minZoom) / span) * 100);
+}
+
+function clampResizePx(value: number) {
+  if (!Number.isFinite(value)) return 1;
+  return Math.min(8192, Math.max(1, Math.round(value)));
+}
+
+function readSavedResize(state: ImageEditorState) {
+  const raw = state.resize;
+  if (!raw || typeof raw !== "object") return null;
+  const width = Number(raw.width);
+  const height = Number(raw.height);
+  if (!Number.isFinite(width) || !Number.isFinite(height)) return null;
+  return { width: clampResizePx(width), height: clampResizePx(height) };
+}
+
+function readFillChrome(state: ImageEditorState) {
+  const family = state.fillFamily;
+  if (
+    typeof family !== "string" ||
+    !(FILL_SWATCH_NAMES as readonly string[]).includes(family)
+  ) {
+    return null;
+  }
+  const shade = Number(state.fillShade);
+  return {
+    family: family as FillSwatchName,
+    shade: Number.isFinite(shade) ? Math.min(100, Math.max(0, shade)) : 50,
+  };
 }
 
 function scaleValueToZoom(value: number, minZoom: number, maxZoom: number) {
@@ -898,6 +1088,10 @@ export function ImageEditor({
   onExport,
   onCancel,
   showMediaSize = true,
+  enableResize = true,
+  enableFill = true,
+  imageState = null,
+  onImageStateChange,
 }: ImageEditorProps) {
   const resolvedMajorTickWidth = majorTickWidth ?? tickWidth;
   const pickerOptions = presetPicker?.options ?? DEFAULT_PRESET_PICKER_OPTIONS;
@@ -1029,10 +1223,20 @@ export function ImageEditor({
         ...localePack.labels.fillModes,
         ...labelOverrides?.fillModes,
       },
+      fillColors: {
+        ...defaultLabels.fillColors,
+        ...localePack.labels.fillColors,
+        ...labelOverrides?.fillColors,
+      },
       redact: {
         ...defaultLabels.redact,
         ...localePack.labels.redact,
         ...labelOverrides?.redact,
+      },
+      resize: {
+        ...defaultLabels.resize,
+        ...localePack.labels.resize,
+        ...labelOverrides?.resize,
       },
     }),
     [labelOverrides, localePack],
@@ -1055,11 +1259,21 @@ export function ImageEditor({
     () => ({ ...defaultLabels.redact, ...labels.redact }),
     [labels.redact],
   );
-  const sidebarTools = useMemo(() => buildSidebarTools(labels), [labels]);
+  const sidebarTools = useMemo(
+    () => buildSidebarTools(labels, enableResize, enableFill),
+    [labels, enableResize, enableFill],
+  );
   const presetAspectRatio = config.crop.aspectRatio ?? null;
   const guides = config.crop.guides ?? [];
 
-  const editor = useImageEditor(open ? src : null, { initialZoom });
+  const [pastedSource, setPastedSource] = useState<File | null>(null);
+  const [stickerBusy, setStickerBusy] = useState(false);
+  useEffect(() => {
+    setPastedSource(null);
+  }, [src, open]);
+  const editor = useImageEditor(open ? (pastedSource ?? src) : null, {
+    initialZoom,
+  });
   const rootRef = useRef<HTMLDivElement>(null);
   const [fullscreen, setFullscreen] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -1100,6 +1314,8 @@ export function ImageEditor({
    * mid-scroll highlight never waits on a history round-trip.
    */
   const [highlightFilter, setHighlightFilter] = useState<FilterId>("original");
+  const [fillFamily, setFillFamily] = useState<FillSwatchName>("white");
+  const [fillShade, setFillShade] = useState(50);
   /**
    * Valid zoom range reported by the viewport. The lower bound is the minimum
    * covering scale for the current rotation/frame, so ruler value 0 maps onto
@@ -1153,6 +1369,11 @@ export function ImageEditor({
   const [stickerSheetOpen, setStickerSheetOpen] = useState(false);
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
   const [colorEyedropActive, setColorEyedropActive] = useState(false);
+  const [fillColorPickerOpen, setFillColorPickerOpen] = useState(false);
+  const [fillEyedropActive, setFillEyedropActive] = useState(false);
+  const [fillPickerColor, setFillPickerColor] = useState("#ffffff");
+  const fillPickerColorRef = useRef("#ffffff");
+  const fillPickerDirtyRef = useRef(false);
   const [cropShapeOpen, setCropShapeOpen] = useState(false);
   const [rotationInteracting, setRotationInteracting] = useState(false);
   const [chromeFade, setChromeFade] = useState<ChromeFadeState>({
@@ -1187,6 +1408,19 @@ export function ImageEditor({
   const [cropShapeSelection, setCropShapeSelection] =
     useState<CropShapeSelection | null>(null);
   const [redactStyle, setRedactStyle] = useState<RedactStyle>("pixelate");
+  const [resizeCustom, setResizeCustom] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
+  const [resizeLinked, setResizeLinked] = useState(true);
+  const resizeAxisRef = useRef<"width" | "height">("width");
+  const [emitReady, setEmitReady] = useState(false);
+  const imageStateRef = useRef(imageState);
+  imageStateRef.current = imageState;
+  const onImageStateChangeRef = useRef(onImageStateChange);
+  onImageStateChangeRef.current = onImageStateChange;
+  const appliedImageRef = useRef<typeof editor.loaded>(null);
+  const stateSessionRef = useRef(0);
   const [redactInteractMode, setRedactInteractMode] = useState<"move" | "draw">(
     "move",
   );
@@ -1316,8 +1550,23 @@ export function ImageEditor({
           setColorEyedropActive(false);
           return;
         }
+        if (fillEyedropActive) {
+          setFillEyedropActive(false);
+          return;
+        }
         if (colorPickerOpen) {
           setColorPickerOpen(false);
+          return;
+        }
+        if (fillColorPickerOpen) {
+          if (fillPickerDirtyRef.current) {
+            editor.setFill(
+              { mode: "solid", color: fillPickerColorRef.current },
+              true,
+            );
+            fillPickerDirtyRef.current = false;
+          }
+          setFillColorPickerOpen(false);
           return;
         }
         if (stickerSheetOpen) {
@@ -1350,11 +1599,14 @@ export function ImageEditor({
     stickerSheetOpen,
     colorPickerOpen,
     colorEyedropActive,
+    fillColorPickerOpen,
+    fillEyedropActive,
     features.undoRedo,
     editor.canUndo,
     editor.canRedo,
     editor.undo,
     editor.redo,
+    editor.setFill,
   ]);
 
   useEffect(() => {
@@ -1371,6 +1623,9 @@ export function ImageEditor({
     setParkedAdjust({});
     setColorPickerOpen(false);
     setColorEyedropActive(false);
+    setFillColorPickerOpen(false);
+    setFillEyedropActive(false);
+    fillPickerDirtyRef.current = false;
     setStickerSheetOpen(false);
     markupSessionRef.current = null;
     markupFadePendingRef.current = null;
@@ -1436,9 +1691,13 @@ export function ImageEditor({
       } else if (to === "redact") {
         setRedactSelectedId(null);
         setRedactInteractMode("move");
+      } else if (to === "fill" && editor.fill.mode === "none") {
+        setFillFamily("white");
+        setFillShade(50);
+        editor.setFill({ mode: "solid", color: "#ffffff" }, false);
       }
     },
-    [armModeTransition, editor.filter.id],
+    [armModeTransition, editor.filter.id, editor.fill.mode, editor.setFill],
   );
 
   const clearMarkupOverlays = useCallback(() => {
@@ -1477,6 +1736,7 @@ export function ImageEditor({
         markupSessionRef.current = session;
         setMarkupSession(session);
         clearMarkupOverlays();
+        setPlaceRequestKind(null);
         applySidebarTool(pending.from, "annotate", { animateMode: false });
       } else if (pending?.kind === "leave") {
         const session = markupSessionRef.current;
@@ -1490,6 +1750,7 @@ export function ImageEditor({
         markupSessionRef.current = null;
         setMarkupSession(null);
         clearMarkupOverlays();
+        setPlaceRequestKind(null);
         applySidebarTool("annotate", pending.to, { animateMode: false });
       }
       settleTimer = window.setTimeout(() => {
@@ -1584,7 +1845,9 @@ export function ImageEditor({
   const isFilter = activeTool === "filter";
   const isMarkup = activeTool === "annotate";
   const isRedact = activeTool === "redact";
+  const isFill = enableFill && activeTool === "fill";
   const isFrame = activeTool === "frame";
+  const isResize = enableResize && activeTool === "resize";
   const liveMarkup = markupSession?.present ?? editor.markup;
   const markupCanUndo = isMarkup
     ? Boolean(markupSession && markupSession.past.length > 0)
@@ -1599,7 +1862,13 @@ export function ImageEditor({
     : editor.commitMarkup;
   /** Every non-crop tool previews the graded frame against the mask edges. */
   const isPreviewTool =
-    isCalibrate || isFilter || isMarkup || isRedact || isFrame;
+    isCalibrate ||
+    isFilter ||
+    isMarkup ||
+    isFill ||
+    isRedact ||
+    isFrame ||
+    isResize;
   const showCropFloatingTools =
     !isPreviewTool &&
     (features.flipHorizontal ||
@@ -1607,6 +1876,7 @@ export function ImageEditor({
       features.rotateLeft ||
       features.cropShape);
   const showRedactFloatingTools = isRedact && features.subToolbar !== false;
+  const showFillFloatingTools = isFill && features.subToolbar !== false;
   /** Ruler/scale strip — hidden while the Crop Shape selector owns the bottom bar. */
   const showCropBottomBar =
     !isPreviewTool &&
@@ -1618,7 +1888,9 @@ export function ImageEditor({
   const showFilterBottomBar = isFilter && features.bottomBar !== false;
   const showMarkupBottomBar = isMarkup && features.bottomBar !== false;
   const showRedactBottomBar = isRedact && features.bottomBar !== false;
+  const showFillBottomBar = isFill && features.bottomBar !== false;
   const showFrameBottomBar = isFrame && features.bottomBar !== false;
+  const showResizeBottomBar = isResize && features.bottomBar !== false;
   const chromeId = showCropShapePanel
     ? "crop-shape"
     : showCropBottomBar
@@ -1629,16 +1901,22 @@ export function ImageEditor({
           ? "filter"
           : showMarkupBottomBar
             ? "annotate"
-            : showRedactBottomBar
-              ? "redact"
-              : showFrameBottomBar
-                ? "frame"
-                : "none";
+            : showFillBottomBar
+              ? "fill"
+              : showRedactBottomBar
+                ? "redact"
+                : showFrameBottomBar
+                  ? "frame"
+                  : showResizeBottomBar
+                    ? "resize"
+                    : "none";
   const subToolbarId = showCropFloatingTools
     ? "crop"
     : showRedactFloatingTools
       ? "redact"
-      : "none";
+      : showFillFloatingTools
+        ? "fill"
+        : "none";
 
   const activeCropShape =
     cropShapeSelection ??
@@ -1659,6 +1937,199 @@ export function ImageEditor({
       : presetAspectRatio;
 
   const freeform = activeCropShape.shape === "freeform" || aspectRatio == null;
+
+  const nativeOutput = useMemo(() => {
+    const mw = mediaSize.width;
+    const mh = mediaSize.height;
+    if (mw < 1 || mh < 1) return { width: 0, height: 0 };
+    const cw = editor.cropFrameSize?.width || editor.viewportSize.width;
+    const ch = editor.cropFrameSize?.height || editor.viewportSize.height;
+    if (cw < 1 || ch < 1) {
+      return { width: Math.round(mw), height: Math.round(mh) };
+    }
+    const pixel = computePixelCrop(mw, mh, editor.crop, aspectRatio, cw, ch, {
+      cropOutsideImage: config.cropOutsideImage,
+    });
+    const cropW = Math.max(1, Math.round(pixel.width));
+    const cropH = Math.max(1, Math.round(pixel.height));
+    const layout = computeFrameLayout(cropW, cropH, editor.frame);
+    return {
+      width: Math.max(1, layout.outW),
+      height: Math.max(1, layout.outH),
+    };
+  }, [
+    mediaSize.width,
+    mediaSize.height,
+    editor.crop,
+    editor.cropFrameSize,
+    editor.viewportSize,
+    editor.frame,
+    aspectRatio,
+    config.cropOutsideImage,
+  ]);
+
+  useEffect(() => {
+    setResizeCustom(null);
+  }, [src]);
+
+  useEffect(() => {
+    stateSessionRef.current += 1;
+  }, [src, pastedSource]);
+
+  useEffect(() => {
+    if (!open || !editor.loaded) {
+      if (!open) appliedImageRef.current = null;
+      setEmitReady(false);
+      return;
+    }
+    if (appliedImageRef.current === editor.loaded) {
+      setEmitReady(!pastedSource);
+      return;
+    }
+    appliedImageRef.current = editor.loaded;
+    stateSessionRef.current += 1;
+    if (!pastedSource) {
+      const saved = imageStateRef.current;
+      if (saved) {
+        const snapshot = normalizeEditorSnapshot(saved);
+        editor.replaceSnapshot(snapshot);
+        setHighlightFilter(snapshot.filter.id);
+        const chrome = readFillChrome(saved);
+        if (chrome) {
+          setFillFamily(chrome.family);
+          setFillShade(chrome.shade);
+        }
+        setResizeLinked(saved.resizeLinked !== false);
+        setResizeCustom(enableResize ? readSavedResize(saved) : null);
+      } else {
+        setHighlightFilter("original");
+        setFillFamily("white");
+        setFillShade(50);
+        setResizeLinked(true);
+        setResizeCustom(null);
+      }
+    }
+    setEmitReady(!pastedSource);
+  }, [open, editor.loaded, editor.replaceSnapshot, pastedSource, enableResize]);
+
+  useEffect(() => {
+    if (!emitReady) return;
+    const session = stateSessionRef.current;
+    const frame = requestAnimationFrame(() => {
+      if (stateSessionRef.current !== session) return;
+      const emit = onImageStateChangeRef.current;
+      if (!emit) return;
+      emit({
+        ...normalizeEditorSnapshot({
+          crop: editor.crop,
+          transform: editor.transform,
+          adjust: editor.adjust,
+          filter: editor.filter,
+          markup: editor.markup,
+          fill: editor.fill,
+          redact: editor.redact,
+          frame: editor.frame,
+          cropShape: editor.cropShape,
+        }),
+        resize: resizeCustom
+          ? { width: resizeCustom.width, height: resizeCustom.height }
+          : null,
+        resizeLinked,
+        fillFamily,
+        fillShade,
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [
+    emitReady,
+    editor.crop,
+    editor.transform,
+    editor.adjust,
+    editor.filter,
+    editor.markup,
+    editor.fill,
+    editor.redact,
+    editor.frame,
+    editor.cropShape,
+    resizeCustom,
+    resizeLinked,
+    fillFamily,
+    fillShade,
+  ]);
+
+  useEffect(() => {
+    if (enableResize) return;
+    setResizeCustom(null);
+    setActiveTool((tool) => (tool === "resize" ? "crop" : tool));
+  }, [enableResize]);
+
+  useEffect(() => {
+    if (enableFill) return;
+    setActiveTool((tool) => (tool === "fill" ? "crop" : tool));
+    if (editor.fill.mode !== "none") editor.setFill({ mode: "none" }, false);
+  }, [enableFill, editor.fill.mode, editor.setFill]);
+
+  const fillImageInputRef = useRef<HTMLInputElement>(null);
+  const stickerImageInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isFill || editor.fill.mode !== "none") return;
+    setFillFamily("white");
+    setFillShade(50);
+    editor.setFill({ mode: "solid", color: "#ffffff" }, false);
+  }, [isFill, editor.fill.mode, editor.setFill]);
+
+  useEffect(() => {
+    if (!resizeLinked) return;
+    if (nativeOutput.width < 1 || nativeOutput.height < 1) return;
+    setResizeCustom((prev) => {
+      if (!prev) return prev;
+      if (resizeAxisRef.current === "height") {
+        const width = clampResizePx(
+          Math.round((prev.height * nativeOutput.width) / nativeOutput.height),
+        );
+        return width === prev.width ? prev : { width, height: prev.height };
+      }
+      const height = clampResizePx(
+        Math.round((prev.width * nativeOutput.height) / nativeOutput.width),
+      );
+      return height === prev.height ? prev : { width: prev.width, height };
+    });
+  }, [nativeOutput.width, nativeOutput.height, resizeLinked]);
+
+  const commitResizeWidth = (width: number) => {
+    resizeAxisRef.current = "width";
+    const nextWidth = clampResizePx(width);
+    setResizeCustom((prev) => {
+      const baseHeight = prev?.height || nativeOutput.height || 1;
+      if (!resizeLinked || nativeOutput.width < 1 || nativeOutput.height < 1) {
+        return { width: nextWidth, height: Math.max(1, baseHeight) };
+      }
+      return {
+        width: nextWidth,
+        height: clampResizePx(
+          Math.round((nextWidth * nativeOutput.height) / nativeOutput.width),
+        ),
+      };
+    });
+  };
+
+  const commitResizeHeight = (height: number) => {
+    resizeAxisRef.current = "height";
+    const nextHeight = clampResizePx(height);
+    setResizeCustom((prev) => {
+      const baseWidth = prev?.width || nativeOutput.width || 1;
+      if (!resizeLinked || nativeOutput.width < 1 || nativeOutput.height < 1) {
+        return { width: Math.max(1, baseWidth), height: nextHeight };
+      }
+      return {
+        width: clampResizePx(
+          Math.round((nextHeight * nativeOutput.width) / nativeOutput.height),
+        ),
+        height: nextHeight,
+      };
+    });
+  };
 
   const activeGuides =
     guides.includes("circle") &&
@@ -1720,6 +2191,63 @@ export function ImageEditor({
     setHighlightMode("rotation");
   }, [mobileViewport, committedMode]);
 
+  useEffect(() => {
+    if (!open) return;
+    const onPaste = (event: ClipboardEvent) => {
+      if (isTypingTarget(event.target)) return;
+      const items = event.clipboardData?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.kind !== "file" || !item.type.startsWith("image/")) continue;
+        const file = item.getAsFile();
+        if (!file) continue;
+        event.preventDefault();
+        setPastedSource(file);
+        return;
+      }
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, [open]);
+
+  const markupPlane = useMemo(() => {
+    const frame = editor.cropFrameSize;
+    const media = editor.getMediaSize();
+    if (!frame || media.width < 1 || media.height < 1) return null;
+    return markupPlaneFromCrop(
+      frame.width,
+      frame.height,
+      media.width,
+      media.height,
+      editor.crop,
+      editor.transform,
+      config.cropOutsideImage,
+    );
+  }, [
+    editor.cropFrameSize,
+    editor.crop,
+    editor.transform,
+    editor.getMediaSize,
+    config.cropOutsideImage,
+  ]);
+
+  const placeOnPhoto = useCallback(
+    (w: number, h: number) => {
+      const base =
+        liveMarkup.space === "image" || !markupPlane
+          ? liveMarkup
+          : migrateFrameMarkupToImage(liveMarkup, markupPlane);
+      if (!markupPlane) {
+        return { base, x: 0.5 - w / 2, y: 0.5 - h / 2, w, h };
+      }
+      const focus = framePointToImage(0.5, 0.5, markupPlane);
+      const pw = (w * markupPlane.frameW) / markupPlane.imgW;
+      const ph = (h * markupPlane.frameH) / markupPlane.imgH;
+      return { base, x: focus.x - pw / 2, y: focus.y - ph / 2, w: pw, h: ph };
+    },
+    [liveMarkup, markupPlane],
+  );
+
   const placeStickerFromSheet = useCallback(
     (pick: StickerPick) => {
       const id = `mk_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -1728,25 +2256,55 @@ export function ImageEditor({
       const w = isKaomoji
         ? Math.min(0.72, 0.12 + pick.emoji.length * 0.018)
         : 0.2;
+      const box = placeOnPhoto(w, h);
       const sticker: MarkupSticker = {
         kind: "sticker",
         id,
         emoji: pick.emoji,
         style: pick.style,
-        x: 0.5 - w / 2,
-        y: 0.5 - h / 2,
-        w,
-        h,
+        x: box.x,
+        y: box.y,
+        w: box.w,
+        h: box.h,
         rotation: 0,
       };
       if (pick.style === "emoji") void preloadStickerEmoji(pick.emoji);
-      handleMarkupCommit({ objects: [...liveMarkup.objects, sticker] });
+      handleMarkupCommit({ objects: [...box.base.objects, sticker], space: "image" });
       setMarkupTool("sticker");
       setMarkupSelectedIds([id]);
       setStickerSheetOpen(false);
       setMarkupSignaturePadOpen(false);
     },
-    [handleMarkupCommit, liveMarkup],
+    [handleMarkupCommit, placeOnPhoto],
+  );
+
+  const placeImageSticker = useCallback(
+    (image: string, pixelW: number, pixelH: number) => {
+      const id = `mk_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+      const aspect = pixelW / Math.max(1, pixelH);
+      const max = 0.42;
+      const w = aspect >= 1 ? max : max * aspect;
+      const h = aspect >= 1 ? max / aspect : max;
+      const box = placeOnPhoto(w, h);
+      const sticker: MarkupSticker = {
+        kind: "sticker",
+        id,
+        emoji: "",
+        style: "image",
+        image,
+        x: box.x,
+        y: box.y,
+        w: box.w,
+        h: box.h,
+        rotation: 0,
+      };
+      handleMarkupCommit({ objects: [...box.base.objects, sticker], space: "image" });
+      setMarkupTool("sticker");
+      setMarkupSelectedIds([id]);
+      setStickerSheetOpen(false);
+      setMarkupSignaturePadOpen(false);
+    },
+    [handleMarkupCommit, placeOnPhoto],
   );
 
   const isPerspectiveMode = (m: RulerMode) =>
@@ -1844,18 +2402,28 @@ export function ImageEditor({
    * reserving a caption row under the strip — that row is what the enlarged
    * preview reclaims.
    */
+  const showFillColorPill = showFillBottomBar && editor.fill.mode === "solid";
+  const derivedFillLabel = fillSwatchLabel(fillFamily);
+  const [liveFillLabel, setLiveFillLabel] = useState<string | null>(null);
   const showBadgeLabelPill =
-    showCropBottomBar || showCalibrateBottomBar || showFilterBottomBar;
+    showCropBottomBar ||
+    showCalibrateBottomBar ||
+    showFilterBottomBar ||
+    showFillColorPill;
   const badgePillId = showCalibrateBottomBar
     ? "calibrate"
     : showFilterBottomBar
       ? "filter"
-      : "crop";
+      : showFillColorPill
+        ? "fill"
+        : "crop";
   const selectedBadgeLabel = showCalibrateBottomBar
     ? adjustLabels[highlightAdjust]
     : showFilterBottomBar
       ? filterLabels[highlightFilter]
-      : modeLabels[resolveMode(highlightMode)];
+      : showFillColorPill
+        ? (liveFillLabel ?? derivedFillLabel)
+        : modeLabels[resolveMode(highlightMode)];
   const badgeLabelText = hoveredBadgeLabel ?? selectedBadgeLabel;
 
   const filterIntensityUi = intensityToUi(editor.filter.intensity);
@@ -1890,7 +2458,19 @@ export function ImageEditor({
       setExporting(true);
       const { maxWidth, maxHeight, quality, ...fullExportOptions } =
         config.exportOptions;
-      const blob = await editor.exportEdited(aspectRatio, fullExportOptions);
+      const fullBlob = await editor.exportEdited(
+        aspectRatio,
+        fullExportOptions,
+      );
+      const blob =
+        enableResize && resizeCustom
+          ? await resizeBlob(
+              fullBlob,
+              resizeCustom.width,
+              resizeCustom.height,
+              quality ?? 0.92,
+            )
+          : fullBlob;
       if (
         (exportView === "preview" && showExportPreview) ||
         exportView === "result"
@@ -1919,6 +2499,19 @@ export function ImageEditor({
       setColorEyedropActive(false);
     }
   }, [isMarkup]);
+
+  useEffect(() => {
+    if (isFill) return;
+    if (fillPickerDirtyRef.current) {
+      editor.setFill(
+        { mode: "solid", color: fillPickerColorRef.current },
+        true,
+      );
+      fillPickerDirtyRef.current = false;
+    }
+    setFillColorPickerOpen(false);
+    setFillEyedropActive(false);
+  }, [isFill, editor]);
 
   useEffect(() => {
     if (!open) setFullscreen(false);
@@ -2212,7 +2805,7 @@ export function ImageEditor({
                 </ModePresence>
 
                 <div data-ie-part="workspace" className={parts.workspace}>
-                  {editor.loading && (
+                  {(editor.loading || stickerBusy) && (
                     <div
                       data-ie-part="loading"
                       className="ie-loader-overlay"
@@ -2429,6 +3022,107 @@ export function ImageEditor({
                               </div>
                             </div>
                           ) : null}
+
+                          {showFillFloatingTools ? (
+                            <div
+                              data-ie-part="sub-toolbar"
+                              className={parts.subToolbar}
+                            >
+                              <div
+                                className="ie-redact-draw-mode"
+                                role="tablist"
+                                aria-label={labels.tools?.fill ?? "Fill"}
+                              >
+                                <button
+                                  type="button"
+                                  role="tab"
+                                  className="ie-redact-draw-mode-btn"
+                                  data-ie-active={
+                                    editor.fill.mode === "solid"
+                                      ? "true"
+                                      : undefined
+                                  }
+                                  aria-selected={editor.fill.mode === "solid"}
+                                  aria-label={
+                                    labels.fillModes?.solid ?? "Color"
+                                  }
+                                  onClick={() => {
+                                    if (editor.fill.mode !== "solid") {
+                                      editor.setFill({ mode: "solid" });
+                                    }
+                                  }}
+                                >
+                                  <IconFillColor />
+                                </button>
+                                <button
+                                  type="button"
+                                  role="tab"
+                                  className="ie-redact-draw-mode-btn"
+                                  data-ie-active={
+                                    editor.fill.mode === "edge-blur"
+                                      ? "true"
+                                      : undefined
+                                  }
+                                  aria-selected={
+                                    editor.fill.mode === "edge-blur"
+                                  }
+                                  aria-label={
+                                    labels.fillModes?.edgeBlur ?? "Blur"
+                                  }
+                                  onClick={() => {
+                                    if (editor.fill.mode !== "edge-blur") {
+                                      editor.setFill({
+                                        mode: "edge-blur",
+                                        blur: editor.fill.blur ?? 0.55,
+                                      });
+                                    }
+                                  }}
+                                >
+                                  <IconFillBlur />
+                                </button>
+                                <button
+                                  type="button"
+                                  role="tab"
+                                  className="ie-redact-draw-mode-btn"
+                                  data-ie-active={
+                                    editor.fill.mode === "image"
+                                      ? "true"
+                                      : undefined
+                                  }
+                                  aria-selected={editor.fill.mode === "image"}
+                                  aria-label={
+                                    labels.fillModes?.image ?? "Image"
+                                  }
+                                  onClick={() => {
+                                    if (editor.fill.mode !== "image") {
+                                      editor.setFill({ mode: "image" });
+                                    }
+                                    fillImageInputRef.current?.click();
+                                  }}
+                                >
+                                  <IconFillImage />
+                                </button>
+                              </div>
+                              <input
+                                ref={fillImageInputRef}
+                                type="file"
+                                accept="image/*"
+                                hidden
+                                onChange={(event) => {
+                                  const file = event.target.files?.[0];
+                                  event.target.value = "";
+                                  if (!file) return;
+                                  void readFillImage(file).then(
+                                    async (image) => {
+                                      if (!image) return;
+                                      await ensureFillImage(image);
+                                      editor.setFill({ mode: "image", image });
+                                    },
+                                  );
+                                }}
+                              />
+                            </div>
+                          ) : null}
                         </ModeChromeSlot>
 
                         <div
@@ -2450,7 +3144,11 @@ export function ImageEditor({
                             }
                             markupActive={isMarkup}
                             redactActive={isRedact}
-                            fill={editor.fill}
+                            fill={
+                              enableFill
+                                ? editor.fill
+                                : { mode: "none", color: "#ffffff" }
+                            }
                             editorFrame={editor.frame}
                             redact={editor.redact}
                             redactStyle={redactStyle}
@@ -2526,12 +3224,58 @@ export function ImageEditor({
                                   }
                                 : null
                             }
-                            eyedropActive={colorEyedropActive}
-                            onEyedropColor={setMarkupColor}
-                            onEyedropEnd={() => setColorEyedropActive(false)}
+                            eyedropActive={
+                              (isMarkup && colorEyedropActive) ||
+                              (isFill && fillEyedropActive)
+                            }
+                            onEyedropColor={(color) => {
+                              if (isFill) {
+                                fillPickerColorRef.current = color;
+                                fillPickerDirtyRef.current = true;
+                                setFillPickerColor(color);
+                                setLiveFillLabel(color.toUpperCase());
+                                editor.setFill(
+                                  { mode: "solid", color },
+                                  false,
+                                );
+                                return;
+                              }
+                              setMarkupColor(color);
+                            }}
+                            onEyedropEnd={() => {
+                              if (fillEyedropActive) {
+                                if (fillPickerDirtyRef.current) {
+                                  editor.setFill(
+                                    {
+                                      mode: "solid",
+                                      color: fillPickerColorRef.current,
+                                    },
+                                    true,
+                                  );
+                                  fillPickerDirtyRef.current = false;
+                                }
+                                setFillEyedropActive(false);
+                                return;
+                              }
+                              setColorEyedropActive(false);
+                            }}
                             onMarkupRulerChange={setMarkupRuler}
                             onMarkupSelectedIdsChange={setMarkupSelectedIds}
                             onMarkupCommit={handleMarkupCommit}
+                            onMarkupAdopt={(next) => {
+                              const session = markupSessionRef.current;
+                              if (session) {
+                                const updated = {
+                                  ...session,
+                                  present: next,
+                                  baseline: next,
+                                };
+                                markupSessionRef.current = updated;
+                                setMarkupSession(updated);
+                                return;
+                              }
+                              editor.setMarkup(next, false);
+                            }}
                             compareResetKey={
                               isCalibrate
                                 ? `calibrate:${highlightAdjust}`
@@ -2539,11 +3283,15 @@ export function ImageEditor({
                                   ? `filter:${highlightFilter}`
                                   : isMarkup
                                     ? "markup"
-                                    : isRedact
-                                      ? `redact:${redactStyle}`
-                                      : isFrame
-                                        ? `frame:${editor.frame.preset}`
-                                        : undefined
+                                    : isFill
+                                      ? `fill:${editor.fill.mode}`
+                                      : isRedact
+                                        ? `redact:${redactStyle}`
+                                        : isFrame
+                                          ? `frame:${editor.frame.preset}`
+                                          : isResize
+                                            ? "resize"
+                                            : undefined
                             }
                             compareOriginalLabel={
                               labels.compareOriginal ??
@@ -2611,8 +3359,13 @@ export function ImageEditor({
                           collapse
                           className="ie-mode-label-pill"
                           data-ie-part="mode-label"
-                          data-ie-crop-fade={isFilter ? undefined : ""}
+                          data-ie-crop-fade={
+                            isFilter || showFillColorPill ? undefined : ""
+                          }
                           data-ie-filter-label={isFilter ? "true" : undefined}
+                          data-ie-fill-label={
+                            showFillColorPill ? "true" : undefined
+                          }
                           aria-hidden
                         >
                           <ModeLabelFade
@@ -3105,6 +3858,9 @@ export function ImageEditor({
                                   setPlaceRequestKind("loupe");
                                   setPlaceRequestKey((k) => k + 1);
                                 }}
+                                onAddImage={() =>
+                                  stickerImageInputRef.current?.click()
+                                }
                                 onEraserModeChange={setMarkupEraserMode}
                                 onColorChange={setMarkupColor}
                                 onStrokeWidthChange={setMarkupStrokeWidth}
@@ -3121,6 +3877,28 @@ export function ImageEditor({
                                     visible: !r.visible,
                                   }))
                                 }
+                              />
+                              <input
+                                ref={stickerImageInputRef}
+                                type="file"
+                                accept="image/*"
+                                hidden
+                                onChange={(event) => {
+                                  const file = event.target.files?.[0];
+                                  event.target.value = "";
+                                  if (!file) return;
+                                  setStickerBusy(true);
+                                  void readStickerImage(file)
+                                    .then((image) => {
+                                      if (!image) return;
+                                      placeImageSticker(
+                                        image.url,
+                                        image.width,
+                                        image.height,
+                                      );
+                                    })
+                                    .finally(() => setStickerBusy(false));
+                                }}
                               />
                             </div>
                           )}
@@ -3182,6 +3960,130 @@ export function ImageEditor({
                             </div>
                           )}
 
+                          {showFillBottomBar && (
+                            <div
+                              data-ie-part="bottom-bar"
+                              data-ie-tool="fill"
+                              className={parts.bottomBar}
+                            >
+                              <EditorFillStrip
+                                mode={editor.fill.mode}
+                                family={fillFamily}
+                                shade={fillShade}
+                                blur={editor.fill.blur ?? 0.55}
+                                labels={{
+                                  color: labels.fillModes?.color ?? "Color",
+                                  blur: labels.fillModes?.edgeBlur ?? "Blur",
+                                  addColor:
+                                    labels.fillModes?.addColor ??
+                                    "Custom color",
+                                }}
+                                onHighlight={setLiveFillLabel}
+                                onSelectFamily={(name, commit) => {
+                                  setFillFamily(name);
+                                  setLiveFillLabel(fillSwatchLabel(name));
+                                  if (fillSwatchHasRuler(name)) setFillShade(50);
+                                  editor.setFill(
+                                    {
+                                      mode: "solid",
+                                      color: fillSwatchColor(name, 50),
+                                    },
+                                    commit,
+                                  );
+                                }}
+                                onResetShade={() => {
+                                  if (!fillSwatchHasRuler(fillFamily)) return;
+                                  setFillShade(50);
+                                  setLiveFillLabel(fillSwatchLabel(fillFamily));
+                                  editor.setFill(
+                                    {
+                                      mode: "solid",
+                                      color: fillSwatchColor(fillFamily, 50),
+                                    },
+                                    true,
+                                  );
+                                }}
+                                onBlurAmount={(value, commit) =>
+                                  editor.setFill(
+                                    { mode: "edge-blur", blur: value },
+                                    commit,
+                                  )
+                                }
+                                onOpenColorPicker={() => {
+                                  const color = cssColorToHex(editor.fill.color);
+                                  fillPickerColorRef.current = color;
+                                  fillPickerDirtyRef.current = false;
+                                  setFillPickerColor(color);
+                                  setFillEyedropActive(false);
+                                  setFillColorPickerOpen(true);
+                                }}
+                                onChromeHoldFadeBegin={
+                                  beginSelectiveChromeHoldFade
+                                }
+                                onChromeHoldFadeEnd={endHoldFade}
+                              />
+                              {editor.fill.mode === "solid" &&
+                              !fillSwatchHasRuler(fillFamily) ? (
+                                <div
+                                  className="ie-fill-ruler-spacer"
+                                  aria-hidden
+                                />
+                              ) : editor.fill.mode === "solid" &&
+                                fillSwatchHasRuler(fillFamily) ? (
+                                <RotationRuler
+                                  key="fill-shade"
+                                  value={fillShade}
+                                  min={0}
+                                  max={100}
+                                  majorEvery={10}
+                                  formatValue={(value) =>
+                                    String(Math.round(value))
+                                  }
+                                  onChange={(value) => {
+                                    setFillShade(value);
+                                    setLiveFillLabel(fillSwatchLabel(fillFamily));
+                                    editor.setFill(
+                                      {
+                                        mode: "solid",
+                                        color: fillSwatchColor(fillFamily, value),
+                                      },
+                                      false,
+                                    );
+                                  }}
+                                  onCommit={(value) => {
+                                    setFillShade(value);
+                                    editor.setFill(
+                                      {
+                                        mode: "solid",
+                                        color: fillSwatchColor(fillFamily, value),
+                                      },
+                                      true,
+                                    );
+                                  }}
+                                  alignSnap={false}
+                                  showAlignIndicators={false}
+                                  animateTicks={animateTicks}
+                                  tickWidth={tickWidth}
+                                  majorTickWidth={resolvedMajorTickWidth}
+                                  negativeColor={negativeColor}
+                                  positiveColor={positiveColor}
+                                  showBadge={false}
+                                  ariaLabel={labels.fillModes?.color ?? "Color"}
+                                  chromeHoldFadeEnabled
+                                  chromeHoldFadeFocus="fill-shade"
+                                  chromeFadeAsSelective
+                                  rulerFocusActive={
+                                    chromeFadeFocus === "fill-shade"
+                                  }
+                                  onChromeHoldFadeBegin={
+                                    beginSelectiveChromeHoldFade
+                                  }
+                                  onChromeHoldFadeEnd={endHoldFade}
+                                />
+                              ) : null}
+                            </div>
+                          )}
+
                           {showFrameBottomBar && (
                             <div
                               data-ie-part="bottom-bar"
@@ -3202,6 +4104,41 @@ export function ImageEditor({
                                 onFrameChange={(patch, commit) =>
                                   editor.setFrame(patch, commit !== false)
                                 }
+                              />
+                            </div>
+                          )}
+
+                          {showResizeBottomBar && (
+                            <div
+                              data-ie-part="bottom-bar"
+                              data-ie-tool="resize"
+                              className={parts.bottomBar}
+                            >
+                              <EditorResizeStrip
+                                width={
+                                  resizeCustom?.width || nativeOutput.width
+                                }
+                                height={
+                                  resizeCustom?.height || nativeOutput.height
+                                }
+                                linked={resizeLinked}
+                                custom={resizeCustom != null}
+                                labels={{
+                                  width: labels.resize?.width ?? "Width",
+                                  height: labels.resize?.height ?? "Height",
+                                  lock:
+                                    labels.resize?.lock ?? "Lock aspect ratio",
+                                  unlock:
+                                    labels.resize?.unlock ??
+                                    "Unlock aspect ratio",
+                                  reset: labels.resize?.reset ?? "Reset",
+                                }}
+                                onWidth={commitResizeWidth}
+                                onHeight={commitResizeHeight}
+                                onToggleLink={() =>
+                                  setResizeLinked((linked) => !linked)
+                                }
+                                onReset={() => setResizeCustom(null)}
                               />
                             </div>
                           )}
@@ -3253,11 +4190,44 @@ export function ImageEditor({
                 />
               </div>
               <EditorColorPicker
-                open={isMarkup && colorPickerOpen}
-                color={markupColor}
-                onChange={setMarkupColor}
-                onClose={() => setColorPickerOpen(false)}
+                open={
+                  (isMarkup && colorPickerOpen) ||
+                  (isFill && fillColorPickerOpen)
+                }
+                color={
+                  isFill && fillColorPickerOpen ? fillPickerColor : markupColor
+                }
+                onChange={(color) => {
+                  if (isFill && fillColorPickerOpen) {
+                    fillPickerColorRef.current = color;
+                    fillPickerDirtyRef.current = true;
+                    setFillPickerColor(color);
+                    setLiveFillLabel(color.toUpperCase());
+                    editor.setFill({ mode: "solid", color }, false);
+                    return;
+                  }
+                  setMarkupColor(color);
+                }}
+                onClose={() => {
+                  if (fillColorPickerOpen) {
+                    if (fillPickerDirtyRef.current) {
+                      editor.setFill(
+                        { mode: "solid", color: fillPickerColorRef.current },
+                        true,
+                      );
+                      fillPickerDirtyRef.current = false;
+                    }
+                    setFillColorPickerOpen(false);
+                    return;
+                  }
+                  setColorPickerOpen(false);
+                }}
                 onEyedropper={() => {
+                  if (fillColorPickerOpen) {
+                    setFillColorPickerOpen(false);
+                    setFillEyedropActive(true);
+                    return;
+                  }
                   setColorPickerOpen(false);
                   setColorEyedropActive(true);
                 }}

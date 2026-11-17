@@ -1138,7 +1138,7 @@ badge appears above it — same pattern as the shape badge:
 The badge is rendered by `MarkupTextBadge` inside `MarkupLayer`; it does not
 rotate with the text box.
 
-Double-tap a placed text object to enter inline edit mode (`textarea` overlay).
+A newly placed text stays selected and shows its badge. Press that text to enter inline edit mode (`textarea` overlay); the badge closes while the editor is open.
 The Aa menu is for styling, not re-entering edit mode.
 
 ### Aa secondary menu (built-in editor reference)
